@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}EMI Calculator — Lowkey AI{% endblock %}
+{% block page_title %}EMI Calculator{% endblock %}
+
+{% block content %}
+<div class="grid grid-2" style="align-items:start;">
+  <form method="POST" class="glass form-card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field"><label>Principal amount</label><input type="number" step="0.01" name="principal" required value="{{ request.form.get('principal', '') }}"></div>
+    <div class="field"><label>Annual interest rate (%)</label><input type="number" step="0.01" name="rate" required value="{{ request.form.get('rate', '') }}"></div>
+    <div class="field"><label>Tenure (months)</label><input type="number" name="months" required value="{{ request.form.get('months', '') }}"></div>
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Calculate</button>
+  </form>
+
+  {% if result %}
+  <div class="glass card">
+    <h3>Result</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Monthly EMI</span><b style="font-family:var(--font-mono);font-size:18px;">₹{{ "{:,.2f}".format(result.emi) }}</b></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Total payable</span><b style="font-family:var(--font-mono);">₹{{ "{:,.2f}".format(result.total_payable) }}</b></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Total interest</span><b style="font-family:var(--font-mono);color:var(--red);">₹{{ "{:,.2f}".format(result.total_interest) }}</b></div>
+    </div>
+  </div>
+  {% else %}
+  <div class="glass card" style="color:var(--muted);font-size:13px;">Fill in the form to see your EMI breakdown.</div>
+  {% endif %}
+</div>
+{% endblock %}

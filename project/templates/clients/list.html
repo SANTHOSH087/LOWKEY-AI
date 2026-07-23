@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Clients — Lowkey AI{% endblock %}
+{% block page_title %}Clients{% endblock %}
+
+{% block content %}
+<div class="grid grid-2" style="margin-bottom:16px;">
+  <div class="glass stat-card"><div class="label">Total Clients</div><div class="value">{{ clients|length }}</div></div>
+  <div class="glass stat-card"><div class="label">Total Pending</div><div class="value" style="color:var(--red);">₹{{ "{:,.0f}".format(total_pending) }}</div></div>
+</div>
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+  <a href="{{ url_for('clients.create') }}" class="btn btn-primary btn-sm">+ Add Client</a>
+</div>
+
+<div class="glass card">
+  <table class="table">
+    <thead><tr><th>Name</th><th>Phone</th><th>Purchased</th><th>Pending</th><th></th></tr></thead>
+    <tbody>
+      {% for c in clients %}
+      <tr>
+        <td><a href="{{ url_for('clients.detail', client_id=c.id) }}" style="font-weight:700;">{{ c.name }}</a></td>
+        <td style="color:var(--muted);">{{ c.phone or '—' }}</td>
+        <td>₹{{ "{:,.0f}".format(c.total_purchased()) }}</td>
+        <td style="color:{{ 'var(--red)' if c.pending_amount else 'var(--muted)' }};">₹{{ "{:,.0f}".format(c.pending_amount) }}</td>
+        <td><a href="{{ url_for('clients.edit', client_id=c.id) }}" class="btn btn-ghost btn-sm">Edit</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:24px 0;">No clients yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

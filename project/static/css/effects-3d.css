@@ -1,0 +1,313 @@
+/* ==========================================================================
+   3D DEPTH & MOTION LAYER
+   Layers on top of theme.css — doesn't change colors, layout, or the
+   glassmorphism look, just adds real perspective/depth/motion to existing
+   elements. .no-tilt is a generic opt-out hook (unused today, kept in case
+   a future element — e.g. another canvas-heavy widget — needs to skip
+   live tilt without touching this file again).
+   ========================================================================== */
+
+:root {
+  --tilt-max: 8deg;
+  --depth-lift: 14px;
+  --depth-shadow-soft: 0 10px 24px -8px rgba(20, 16, 50, .28);
+  --depth-shadow-lifted: 0 26px 46px -14px rgba(20, 16, 50, .38), 0 8px 18px -6px rgba(20, 16, 50, .22);
+}
+
+[data-theme="dark"] {
+  --depth-shadow-soft: 0 10px 26px -8px rgba(0, 0, 0, .55);
+  --depth-shadow-lifted: 0 28px 50px -14px rgba(0, 0, 0, .65), 0 10px 20px -6px rgba(0, 0, 0, .4);
+}
+
+.app-shell,
+.grid,
+.topbar,
+.sidebar {
+  perspective: 1400px;
+}
+
+/* Cards: .glass.card and .stat-card specifically — NOT every bare .glass
+   element, which would also catch the sidebar rail and glass form
+   wrappers (auth forms, etc.) and give the whole nav a "lifted card" hover
+   shadow while just moving the cursor around to navigate. Those get their
+   own, more subtle treatment further down. */
+.glass.card:not(.no-tilt),
+.stat-card:not(.no-tilt),
+.form-card:not(.no-tilt),
+.chat-shell:not(.no-tilt) {
+  transform-style: preserve-3d;
+  will-change: transform, box-shadow;
+  transition: transform .35s cubic-bezier(.22, 1, .36, 1), box-shadow .35s ease;
+}
+
+.glass.card:not(.no-tilt):hover,
+.stat-card:not(.no-tilt):hover,
+.form-card:not(.no-tilt):hover,
+.chat-shell:not(.no-tilt):hover {
+  box-shadow: var(--depth-shadow-lifted);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .grid-4 .stat-card:not(.no-tilt) {
+    animation: floatDepth 7s ease-in-out infinite;
+  }
+
+  .assistant-globe {
+    animation: assistantGlobeRotate 12s linear infinite;
+  }
+
+  .grid-4 .stat-card:nth-child(2) {
+    animation-delay: -1.6s;
+  }
+
+  .grid-4 .stat-card:nth-child(3) {
+    animation-delay: -3.4s;
+  }
+
+  .grid-4 .stat-card:nth-child(4) {
+    animation-delay: -5.1s;
+  }
+}
+
+@keyframes floatDepth {
+
+  0%,
+  100% {
+    transform: translateZ(0) translateY(0);
+  }
+
+  50% {
+    transform: translateZ(6px) translateY(-3px);
+  }
+}
+
+.assistant-globe {
+  position: relative;
+  transform-style: preserve-3d;
+  perspective: 900px;
+  will-change: transform, box-shadow;
+  animation: assistantGlobeRotate 12s linear infinite;
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+
+.assistant-globe:hover {
+  animation-duration: 7s;
+  box-shadow: 0 0 18px rgba(111, 92, 240, .25), 0 14px 32px rgba(111, 92, 240, .18);
+}
+
+@keyframes assistantGlobeRotate {
+  0% {
+    transform: perspective(900px) rotateX(12deg) rotateY(0deg);
+  }
+
+  100% {
+    transform: perspective(900px) rotateX(12deg) rotateY(360deg);
+  }
+}
+
+/* Floating assistant button placement and responsive behavior */
+.assistant-float {
+  position: fixed;
+  right: 20px;
+  bottom: 24px;
+  z-index: 1200;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--depth-shadow-soft);
+  transition: transform .25s ease, box-shadow .25s ease;
+  cursor: pointer;
+}
+
+.assistant-float a {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.assistant-globe-svg {
+  width: 34px;
+  height: 34px;
+  transform-style: preserve-3d;
+}
+
+.assistant-float:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--depth-shadow-lifted);
+}
+
+@media (max-width: 720px),
+(hover: none) {
+  .assistant-float {
+    right: 12px;
+    bottom: 14px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .assistant-globe-svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* ---------- Buttons: real press depth ---------- */
+
+.btn {
+  transform-style: preserve-3d;
+  transition: transform .15s cubic-bezier(.22, 1, .36, 1), box-shadow .15s ease;
+  box-shadow: 0 2px 0 rgba(20, 16, 50, .12), 0 6px 14px -6px rgba(20, 16, 50, .25);
+}
+
+.btn:hover {
+  transform: translateY(-2px) translateZ(6px);
+  box-shadow: 0 4px 0 rgba(20, 16, 50, .14), 0 14px 24px -10px rgba(20, 16, 50, .32);
+}
+
+.btn:active {
+  transform: translateY(1px) translateZ(-2px) scale(.98);
+  box-shadow: 0 1px 0 rgba(20, 16, 50, .12), 0 3px 8px -4px rgba(20, 16, 50, .25);
+  transition: transform .06s ease;
+}
+
+[data-theme="dark"] .btn {
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .35), 0 6px 14px -6px rgba(0, 0, 0, .5);
+}
+
+[data-theme="dark"] .btn:hover {
+  box-shadow: 0 4px 0 rgba(0, 0, 0, .4), 0 14px 24px -10px rgba(0, 0, 0, .55);
+}
+
+/* ---------- Sidebar + nav items ---------- */
+
+.sidebar {
+  transform-style: preserve-3d;
+}
+
+.nav-item {
+  transition: transform .25s cubic-bezier(.22, 1, .36, 1), background .2s ease;
+  transform-style: preserve-3d;
+}
+
+.nav-item:hover {
+  transform: translateX(4px) translateZ(10px);
+}
+
+.nav-item.active {
+  transform: translateZ(4px);
+}
+
+/* ---------- Topbar ---------- */
+
+.topbar {
+  transform-style: preserve-3d;
+}
+
+.mobile-nav-toggle,
+#globalSearchInput,
+.topbar a[aria-label] {
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.mobile-nav-toggle:hover,
+.topbar a[aria-label]:hover {
+  transform: translateZ(8px) translateY(-1px);
+}
+
+/* ---------- Modals: pop-out 3D entrance ---------- */
+
+.modal-3d-open {
+  animation: modalPopIn .32s cubic-bezier(.22, 1.4, .36, 1) both;
+}
+
+@keyframes modalPopIn {
+  0% {
+    opacity: 0;
+    transform: perspective(1000px) translateZ(-120px) rotateX(8deg) scale(.9);
+  }
+
+  100% {
+    opacity: 1;
+    transform: perspective(1000px) translateZ(0) rotateX(0) scale(1);
+  }
+}
+
+/* ---------- Page transition ---------- */
+
+.main-col {
+  perspective: 1600px;
+}
+
+body.page-enter .main-col>* {
+  animation: pageDepthIn .5s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+@keyframes pageDepthIn {
+  0% {
+    opacity: 0;
+    transform: translateZ(-40px) translateY(10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateZ(0) translateY(0);
+  }
+}
+
+/* ---------- Mobile / touch / reduced-motion: dial it back ---------- */
+
+@media (max-width: 720px),
+(hover: none) {
+
+  .glass.card:not(.no-tilt),
+  .stat-card:not(.no-tilt),
+  .form-card:not(.no-tilt),
+  .chat-shell:not(.no-tilt) {
+    transition: box-shadow .2s ease;
+  }
+
+  .grid-4 .stat-card:not(.no-tilt) {
+    animation: none;
+  }
+
+  .assistant-globe {
+    animation: none;
+  }
+
+  .nav-item:hover {
+    transform: none;
+  }
+
+  .btn:hover {
+    transform: none;
+  }
+
+  body.page-enter .main-col>* {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .glass,
+  .stat-card,
+  .btn,
+  .nav-item,
+  .modal-3d-open,
+  body.page-enter .main-col>* {
+    animation: none !important;
+    transition: none !important;
+  }
+}

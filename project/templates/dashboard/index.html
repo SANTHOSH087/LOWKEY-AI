@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Lowkey AI{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<svg width="0" height="0" style="position:absolute;">
+  <defs>
+    <linearGradient id="ringGrad">
+      <stop offset="0" stop-color="var(--purple)" />
+      <stop offset="1" stop-color="var(--blue)" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="grid grid-4" style="margin-bottom:16px;">
+  <div class="glass stat-card">
+    <div class="label">Monthly Income</div>
+    <div class="value">₹{{ "{:,.0f}".format(monthly_income) }}</div>
+  </div>
+  <div class="glass stat-card">
+    <div class="label">Monthly Expense</div>
+    <div class="value">₹{{ "{:,.0f}".format(monthly_expense) }}</div>
+  </div>
+  <div class="glass stat-card">
+    <div class="label">Current Balance</div>
+    <div class="value">₹{{ "{:,.0f}".format(current_balance) }}</div>
+  </div>
+  <div class="glass stat-card">
+    <div class="label">Financial Health Score</div>
+    <div class="value">{{ health_score }}<span style="font-size:12px;color:var(--muted);">/100</span></div>
+  </div>
+</div>
+
+<div class="grid grid-3" style="margin-bottom:16px;align-items:start;">
+  <!-- Financial Overview -->
+  <div class="glass card financial-overview">
+    <h3>Financial Overview</h3>
+
+    <div
+      style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">
+      Top spending categories</div>
+    {% for c in top_categories %}
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:4px;">
+        <span style="display:flex;align-items:center;gap:6px;color:var(--muted);">
+          <span style="width:8px;height:8px;border-radius:50%;background:{{ c.color }};"></span>
+          {{ c.icon }} {{ c.name }}
+        </span>
+        <b>₹{{ "{:,.0f}".format(c.amount) }}</b>
+      </div>
+      <div class="overview-bar">
+        <div class="overview-bar-fill" style="width:{{ c.percent }}%;background:{{ c.color }};"></div>
+      </div>
+    </div>
+    {% else %}
+    <p style="color:var(--muted);font-size:12.5px;margin-bottom:14px;">No expenses yet this month.</p>
+    {% endfor %}
+
+    <div style="height:1px;background:var(--border-soft);margin:14px 0;"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div>
+        <div style="font-size:11px;color:var(--muted);">Monthly expense</div>
+        <div style="font-family:var(--font-mono);font-weight:700;font-size:15px;">₹{{ "{:,.0f}".format(monthly_expense)
+          }}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);">Budget remaining</div>
+        <div
+          style="font-family:var(--font-mono);font-weight:700;font-size:15px;color:{{ 'var(--red)' if total_budget_remaining < 0 else 'var(--green)' }};">
+          ₹{{ "{:,.0f}".format(total_budget_remaining) }}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;">
+        <span>Savings progress</span><span>{{ savings_rate_pct }}% of income (target {{ savings_goal_pct }}%)</span>
+      </div>
+      <div class="overview-bar">
+        <div class="overview-bar-fill" style="width:{{ [savings_rate_pct, 100]|min }}%;background:var(--grad-1);"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="{{ url_for('budgets.list_view') }}" class="btn btn-ghost btn-sm">Budgets →</a>
+      <a href="{{ url_for('reports.index') }}" class="btn btn-ghost btn-sm">Reports →</a>
+    </div>
+  </div>
+
+  <!-- AI Insights -->
+  <div class="glass card">
+    <h3>AI Insights</h3>
+    {% for insight in insights %}
+    <div class="insight-row"><span class="insight-dot"></span><span>{{ insight }}</span></div>
+    {% endfor %}
+  </div>
+
+  <!-- Quick actions -->
+  <div class="glass card" style="margin-bottom:16px;">
+    <h3>Quick Actions</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <a class="btn btn-glass btn-sm" style="justify-content:flex-start;" href="{{ url_for('expenses.create') }}">− Add
+        Expense</a>
+      <a class="btn btn-glass btn-sm" style="justify-content:flex-start;" href="{{ url_for('income.create') }}">+ Add
+        Income</a>
+      <a class="btn btn-glass btn-sm" style="justify-content:flex-start;" href="{{ url_for('ocr.scanner') }}">📷 Scan
+        Bill</a>
+      <a class="btn btn-glass btn-sm" style="justify-content:flex-start;" href="{{ url_for('reports.index') }}">📊 View
+        Reports</a>
+      <a class="btn btn-glass btn-sm" style="justify-content:flex-start;" href="{{ url_for('invoices.create') }}">🧾
+        Generate Invoice</a>
+    </div>
+  </div>
+
+  {% if notifications %}
+  <div class="glass card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="margin:0;">Notifications</h3>
+      <a href="{{ url_for('notifications.list_view') }}"
+        style="font-size:11.5px;color:var(--purple);font-weight:700;">View all →</a>
+    </div>
+    {% for n in notifications %}
+    <form method="POST" action="{{ url_for('notifications.open_notification', notification_id=n.id) }}"
+      style="margin-top:8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit"
+        style="width:100%;text-align:left;background:none;border:none;padding:0;cursor:pointer;color:inherit;">
+        <div class="insight-row" style="border-bottom:1px solid var(--border-soft);">
+          <span class="insight-dot"></span>
+          <span><b style="font-size:12.5px;">{{ n.title }}</b><br><span style="font-size:11.5px;color:var(--muted);">{{
+              n.body }}</span></span>
+        </div>
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid grid-2" style="margin-bottom:16px;align-items:start;">
+  <!-- Recent transactions -->
+  <div class="glass card">
+    <h3>Recent Transactions</h3>
+    <table class="table">
+      <tbody>
+        {% for t in recent_transactions %}
+        <tr>
+          <td>
+            {% if t.type == 'income' %}
+            <span class="pill" style="color:var(--green);">↑ {{ t.row.source }}</span>
+            {% else %}
+            <span class="pill">↓ {{ t.row.category.name if t.row.category else 'Others' }}</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--muted);">{{ t.date.strftime('%d %b') }}</td>
+          <td
+            style="text-align:right;font-family:var(--font-mono);font-weight:700;{{ 'color:var(--green);' if t.type=='income' else '' }}">
+            {{ '+' if t.type == 'income' else '−' }}₹{{ "{:,.0f}".format(t.row.amount) }}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td style="color:var(--muted);">No transactions yet — add your first expense or income.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Expense category bar chart -->
+  <div class="glass card">
+    <h3>Expense Analytics</h3>
+    <div id="chart_expense_category_empty"
+      style="display:none;color:var(--muted);font-size:13px;padding:24px 0;text-align:center;">
+      No expense data available yet.
+    </div>
+    <div id="chart_expense_category_container" class="chart-container" style="position: relative; height: 260px; width: 100%;">
+      <canvas id="expenseCategoryBarChart" style="display:block; width: 100%; height: 260px;"></canvas>
+    </div>
+  </div>
+</div>
+
+{% if has_business_data %}
+<div class="grid grid-2" style="margin-bottom:16px;">
+  <div class="glass card">
+    <h3>Business Summary</h3>
+    <div style="display:flex;gap:20px;">
+      <div>
+        <div class="label" style="font-size:11px;color:var(--muted);">Revenue</div>
+        <div style="font-family:var(--font-mono);font-weight:700;">₹{{ "{:,.0f}".format(business_revenue) }}</div>
+      </div>
+      <div>
+        <div class="label" style="font-size:11px;color:var(--muted);">Profit</div>
+        <div
+          style="font-family:var(--font-mono);font-weight:700;color:{{ 'var(--red)' if business_profit < 0 else 'var(--green)' }};">
+          ₹{{ "{:,.0f}".format(business_profit) }}</div>
+      </div>
+      {% if low_stock_count %}
+      <div>
+        <div class="label" style="font-size:11px;color:var(--muted);">Low stock</div>
+        <div style="font-family:var(--font-mono);font-weight:700;color:var(--red);">{{ low_stock_count }} item{{ 's' if
+          low_stock_count != 1 }}</div>
+      </div>
+      {% endif %}
+    </div>
+    <a href="{{ url_for('business.index') }}" class="btn btn-ghost btn-sm" style="margin-top:14px;">View Business →</a>
+  </div>
+
+  {% if pending_clients %}
+  <div class="glass card">
+    <h3>Pending Payments</h3>
+    {% for c in pending_clients %}
+    <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px;">
+      <a href="{{ url_for('clients.detail', client_id=c.id) }}" style="color:var(--text);">{{ c.name }}</a>
+      <b style="color:var(--red);">₹{{ "{:,.0f}".format(c.pending_amount) }}</b>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if loan_summary or emi_summary %}
+<div class="glass card" style="margin-bottom:16px;">
+  <h3>Upcoming EMI / Loan Reminder</h3>
+  <div class="grid grid-3">
+    {% for row in loan_summary %}
+    <div
+      style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-soft);">
+      <div>
+        <div style="font-weight:700;font-size:13px;">{{ row.loan.name }}</div>
+        <div style="font-size:11px;color:var(--muted);">₹{{ "{:,.0f}".format(row.remaining) }} remaining</div>
+      </div>
+      <b style="font-family:var(--font-mono);">₹{{ "{:,.0f}".format(row.emi) }}</b>
+    </div>
+    {% endfor %}
+    {% for row in emi_summary %}
+    <div
+      style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-soft);">
+      <div>
+        <div style="font-weight:700;font-size:13px;">{{ row.emi.name }}</div>
+        <div style="font-size:11px;color:var(--muted);">Due {{ row.due.strftime('%d %b') }}</div>
+      </div>
+      <b style="font-family:var(--font-mono);">₹{{ "{:,.0f}".format(row.emi.monthly_amount) }}</b>
+    </div>
+    {% endfor %}
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px;">
+    <a href="{{ url_for('loans.list_view') }}" class="btn btn-ghost btn-sm">View Loans →</a>
+    <a href="{{ url_for('emi.list_view') }}" class="btn btn-ghost btn-sm">View EMIs →</a>
+  </div>
+</div>
+{% endif %}
+
+{% if recent_invoices %}
+<div class="glass card" style="margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h3 style="margin:0;">Recent Invoices</h3>
+    {% if invoice_outstanding %}<span class="pill" style="color:var(--red);">₹{{ "{:,.0f}".format(invoice_outstanding)
+      }} outstanding</span>{% endif %}
+  </div>
+  <table class="table" style="margin-top:8px;">
+    <tbody>
+      {% for inv in recent_invoices %}
+      {% set st = inv.effective_status() %}
+      <tr>
+        <td><a href="{{ url_for('invoices.detail', invoice_id=inv.id) }}"
+            style="font-family:var(--font-mono);font-weight:700;color:var(--text);">{{ inv.invoice_number }}</a></td>
+        <td style="color:var(--muted);">{{ inv.client.name if inv.client else '—' }}</td>
+        <td><span class="pill"
+            style="color:{{ {'Paid':'var(--green)','Overdue':'var(--red)','Sent':'var(--purple)','Draft':'var(--muted)'}[st] }};">{{
+            st }}</span></td>
+        <td style="text-align:right;font-family:var(--font-mono);">₹{{ "{:,.0f}".format(inv.grand_total()) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <a href="{{ url_for('invoices.list_view') }}" class="btn btn-ghost btn-sm" style="margin-top:10px;">View Invoices
+    →</a>
+</div>
+{% endif %}
+
+<!-- Budget progress -->
+<div class="glass card">
+  <h3>Budget Progress</h3>
+  <div class="grid grid-3">
+    {% for b in budgets %}
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="ring-wrap" data-pct="{{ b.percent_used() }}" style="width:64px;height:64px;">
+        <svg width="64" height="64">
+          <circle class="ring-bg" cx="32" cy="32" r="26" stroke-width="6" fill="none" />
+          <circle class="ring-fg" cx="32" cy="32" r="26" stroke-width="6" fill="none" stroke-dasharray="{{ 163.4 }}"
+            stroke-dashoffset="{{ 163.4 * (1 - (b.percent_used()/100 if b.percent_used() <= 100 else 1)) }}"
+            stroke-linecap="round" />
+        </svg>
+        <span class="ring-label" style="font-size:12px;">{{ b.percent_used()|round|int }}%</span>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:13px;">{{ b.name }}</div>
+        <div style="font-size:11.5px;color:var(--muted);">₹{{ "{:,.0f}".format(b.spent_amount()) }} of ₹{{
+          "{:,.0f}".format(b.amount) }}</div>
+      </div>
+    </div>
+    {% else %}
+    <p style="color:var(--muted);font-size:13px;">No budgets yet. <a href="{{ url_for('budgets.create') }}"
+        style="color:var(--purple);font-weight:700;">Create one →</a></p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script>
+  window._lk_charts = window._lk_charts || {};
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Chart === 'undefined') {
+      console.warn('Chart.js not loaded yet.');
+      return;
+    }
+
+    const categoryChart = {{ category_chart| tojson }};
+    const canvas = document.getElementById('expenseCategoryBarChart');
+    const emptyMsg = document.getElementById('chart_expense_category_empty');
+    const container = document.getElementById('chart_expense_category_container');
+    if (!canvas || typeof categoryChart !== 'object' || categoryChart === null) return;
+
+    // Robustly destroy any previous chart instance associated with this canvas
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) {
+      try { existingChart.destroy(); } catch (e) { console.warn('Error destroying chart via Chart.getChart', e); }
+    }
+    if (window._lk_charts.expenseCategoryBarChart) {
+      try { window._lk_charts.expenseCategoryBarChart.destroy(); } catch (e) { console.warn('Error destroying window chart instance', e); }
+    }
+
+    const labels = Array.isArray(categoryChart.labels) ? categoryChart.labels : [];
+    const values = Array.isArray(categoryChart.values) ? categoryChart.values.map(v => Number(v) || 0) : [];
+    const colors = Array.isArray(categoryChart.colors) ? categoryChart.colors : labels.map((_, i) => ['#8f7bff', '#4fc3ff', '#ffd27a', '#26b285', '#ef5675', '#d79f2c', '#4fe3ac'][i % 7]);
+    const hasData = labels.length > 0 && values.some(v => v !== 0);
+
+    // Requirement: Log labels and dataset values before rendering
+    console.log('Expense Analytics Chart Labels:', labels);
+    console.log('Expense Analytics Chart Values:', values);
+
+    if (!hasData) {
+      if (emptyMsg) emptyMsg.style.display = 'block';
+      if (container) container.style.display = 'none';
+      canvas.style.display = 'none';
+      return;
+    }
+
+    if (emptyMsg) emptyMsg.style.display = 'none';
+    if (container) container.style.display = 'block';
+    canvas.style.display = 'block';
+
+    window._lk_charts.expenseCategoryBarChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Expense by category',
+          data: values,
+          backgroundColor: colors,
+          borderColor: colors,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            enabled: true,
+            callbacks: {
+              label: function (context) {
+                return '₹' + context.formattedValue;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Category', color: '#999', font: { size: 12 } },
+            ticks: { font: { size: 11 }, maxRotation: 50, minRotation: 0 }
+          },
+          y: {
+            title: { display: true, text: 'Amount (₹)', color: '#999', font: { size: 12 } },
+            ticks: {
+              font: { size: 11 },
+              callback: function (value) {
+                return '₹' + value;
+              }
+            },
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  });
+</script>
+
+<!-- Floating AI Assistant globe (dashboard only) -->
+<div class="assistant-float" role="navigation" aria-label="AI Assistant shortcut">
+  <a href="{{ url_for('assistant.chat') }}" title="AI Assistant" aria-label="Open AI Assistant">
+    <div class="assistant-globe" aria-hidden="true">
+      <svg class="assistant-globe-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" focusable="false"
+        aria-hidden="true">
+        <defs>
+          <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0" stop-color="#6f5cf0" />
+            <stop offset="1" stop-color="#2ab6ff" />
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="14" fill="url(#g1)" opacity="0.98" />
+        <g fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.2">
+          <ellipse cx="32" cy="32" rx="15.8" ry="9.6" transform="rotate(18 32 32)" />
+          <ellipse cx="32" cy="32" rx="15.8" ry="9.6" transform="rotate(-18 32 32)" />
+          <path d="M18 28c4-6 10-8 14-8s10 2 14 8" stroke-linecap="round" />
+          <path d="M18 36c4 6 10 8 14 8s10-2 14-8" stroke-linecap="round" />
+        </g>
+      </svg>
+    </div>
+  </a>
+</div>
+{% endblock %}

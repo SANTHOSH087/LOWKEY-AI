@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}Profile — Lowkey AI{% endblock %}
+{% block page_title %}Profile{% endblock %}
+{% block extra_head %}<script src="{{ url_for('static', filename='js/password-strength.js') }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+  <div class="glass card">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+      {% if current_user.photo_url %}
+        <img src="{{ current_user.photo_url }}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:var(--surface-hi);" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div style="display:none;width:64px;height:64px;border-radius:50%;background:var(--grad-1);align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">{{ current_user.username[0]|upper }}</div>
+      {% else %}
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--grad-1);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">
+          {{ current_user.username[0]|upper }}
+        </div>
+      {% endif %}
+      <div>
+        <div style="font-family:var(--font-display);font-size:17px;font-weight:700;">{{ current_user.username }}</div>
+        <div style="color:var(--muted);font-size:13px;">{{ current_user.email }}</div>
+      </div>
+    </div>
+
+    <table class="table">
+      <tr><td style="color:var(--muted);">Member since</td><td>{{ current_user.created_at.strftime('%d %b %Y') }}</td></tr>
+      <tr><td style="color:var(--muted);">Currency</td><td>₹ INR</td></tr>
+    </table>
+
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm" style="margin-top:16px;">Logout</a>
+    <a href="{{ url_for('core.security') }}" class="btn btn-ghost btn-sm" style="margin-top:16px;margin-left:8px;">Security</a>
+  </div>
+
+  <div class="glass card">
+    <h3>Edit profile</h3>
+    <form method="POST" action="{{ url_for('core.profile') }}">
+      {{ profile_form.hidden_tag() }}
+      <input type="hidden" name="form_name" value="profile" id="form_name">
+      {{ field(profile_form.username) }}
+      {{ field(profile_form.email) }}
+      {{ field(profile_form.phone) }}
+      {{ field(profile_form.photo_url) }}
+      <button type="submit" class="btn btn-primary btn-sm">Save changes</button>
+    </form>
+  </div>
+
+  <div class="glass card">
+    <h3>Change password</h3>
+    <form method="POST" action="{{ url_for('core.change_password') }}">
+      {{ password_form.hidden_tag() }}
+      {{ field(password_form.current_password) }}
+      {{ field(password_form.new_password) }}
+      <div id="pwStrengthBar" class="pw-strength-bar" style="display:none;"><div id="pwStrengthFill"></div></div>
+      <div id="pwStrengthLabel" class="pw-strength-label"></div>
+      {{ field(password_form.confirm_password) }}
+      <button type="submit" class="btn btn-primary btn-sm">Update password</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}Export data — Lowkey AI{% endblock %}
+{% block page_title %}Export your data{% endblock %}
+
+{% block content %}
+<div class="glass card" style="max-width:420px;">
+  <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">
+    Choose a passphrase to encrypt your export. You'll need this exact passphrase to open the file later — Lowkey AI
+    doesn't store it, so if you forget it the file can't be recovered.
+  </p>
+  <form method="POST">
+    {{ form.hidden_tag() }}
+    {{ field(form.passphrase) }}
+    <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">Download encrypted export</button>
+  </form>
+  <p style="text-align:center;font-size:12px;margin-top:14px;">
+    <a href="{{ url_for('core.restore_data') }}" style="color:var(--muted);">Verify an existing backup instead</a>
+  </p>
+</div>
+{% endblock %}

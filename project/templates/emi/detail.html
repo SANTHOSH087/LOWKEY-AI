@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}{{ emi.name }} — Lowkey AI{% endblock %}
+{% block page_title %}{{ emi.name }}{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('emi.list_view') }}" class="btn btn-ghost btn-sm" style="margin-bottom:16px;display:inline-block;">← All EMIs</a>
+
+<div class="grid grid-4" style="margin-bottom:16px;">
+  <div class="glass stat-card"><div class="label">Monthly Amount</div><div class="value">₹{{ "{:,.0f}".format(emi.monthly_amount) }}</div></div>
+  <div class="glass stat-card"><div class="label">Installments</div><div class="value">{{ emi.installments_paid }}/{{ emi.total_installments }}</div></div>
+  <div class="glass stat-card"><div class="label">Pending Amount</div><div class="value">₹{{ "{:,.0f}".format(emi.pending_amount()) }}</div></div>
+  <div class="glass stat-card"><div class="label">Next Due</div><div class="value" style="font-size:16px;">{{ '—' if emi.is_completed else emi.next_due_date().strftime('%d %b %Y') }}</div></div>
+</div>
+
+<div class="grid grid-2" style="align-items:start;">
+  <div class="glass card">
+    {% if emi.is_completed %}
+      <h3 style="color:var(--green);">✓ Fully paid off</h3>
+    {% else %}
+      <h3>Record Next Installment</h3>
+      <form method="POST" action="{{ url_for('emi.record_payment', emi_id=emi.id) }}">
+        {{ form.hidden_tag() }}
+        {{ field(form.amount) }}
+        {{ field(form.paid_on) }}
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Mark installment paid</button>
+      </form>
+    {% endif %}
+    <a href="{{ url_for('emi.edit', emi_id=emi.id) }}" class="btn btn-ghost btn-sm" style="margin-top:14px;">Edit EMI</a>
+    <form method="POST" action="{{ url_for('emi.delete', emi_id=emi.id) }}" onsubmit="return confirm('Delete this EMI and its payment history?');" style="margin-top:8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+    </form>
+  </div>
+
+  <div class="glass card">
+    <h3>Payment History</h3>
+    <table class="table">
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td style="color:var(--muted);">{{ p.paid_on.strftime('%d %b %Y') }}</td>
+          <td style="text-align:right;font-family:var(--font-mono);font-weight:700;">₹{{ "{:,.0f}".format(p.amount) }}</td>
+        </tr>
+        {% else %}
+        <tr><td style="color:var(--muted);text-align:center;padding:24px 0;">No installments recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

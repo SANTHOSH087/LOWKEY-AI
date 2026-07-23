@@ -1,0 +1,16 @@
+{% macro field(f) %}
+<div class="field">
+  <label for="{{ f.id }}">{{ f.label.text }}</label>
+  {{ f() }}
+  {% for error in f.errors %}
+    <div class="field-error">{{ error }}</div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro checkbox(f) %}
+<div class="field-check">
+  {{ f() }}
+  <label for="{{ f.id }}" style="margin:0;">{{ f.label.text }}</label>
+</div>
+{% endmacro %}

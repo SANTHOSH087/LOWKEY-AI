@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}Verify — Lowkey AI{% endblock %}
+{% block guest_content %}
+<div style="min-height:90vh;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <form method="POST" class="glass form-card">
+    {{ form.hidden_tag() }}
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:var(--grad-1);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin:0 auto 12px;">🔐</div>
+      <h2 style="font-family:var(--font-display);font-size:20px;">Two-factor verification</h2>
+      <p style="color:var(--muted);font-size:13px;margin-top:4px;">Enter the 6-digit code from your authenticator app, or one of your backup codes.</p>
+    </div>
+
+    {{ field(form.code) }}
+
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Verify</button>
+    <p style="text-align:center;font-size:12.5px;color:var(--muted-2);margin-top:16px;">
+      <a href="{{ url_for('auth.login') }}" style="color:var(--text);font-weight:700;">Back to login</a>
+    </p>
+  </form>
+</div>
+{% endblock %}

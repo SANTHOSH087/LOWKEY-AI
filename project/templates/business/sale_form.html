@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}Record Sale — Lowkey AI{% endblock %}
+{% block page_title %}Record Sale{% endblock %}
+
+{% block content %}
+<form method="POST" class="glass form-card">
+  {{ form.hidden_tag() }}
+  {{ field(form.product_id) }}
+  {{ field(form.client_id) }}
+  {{ field(form.quantity) }}
+  {{ field(form.sale_price) }}
+  {{ field(form.sold_on) }}
+  <div style="display:flex;gap:10px;margin-top:10px;">
+    <button type="submit" class="btn btn-primary">Record sale</button>
+    <a href="{{ url_for('business.index') }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

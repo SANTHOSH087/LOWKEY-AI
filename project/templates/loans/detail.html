@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}{{ loan.name }} — Lowkey AI{% endblock %}
+{% block page_title %}{{ loan.name }}{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('loans.list_view') }}" class="btn btn-ghost btn-sm" style="margin-bottom:16px;display:inline-block;">← All Loans</a>
+
+<div class="grid grid-4" style="margin-bottom:16px;">
+  <div class="glass stat-card"><div class="label">Monthly EMI</div><div class="value">₹{{ "{:,.0f}".format(loan.emi_amount()) }}</div></div>
+  <div class="glass stat-card"><div class="label">Principal</div><div class="value">₹{{ "{:,.0f}".format(loan.principal) }}</div></div>
+  <div class="glass stat-card"><div class="label">Total Interest</div><div class="value">₹{{ "{:,.0f}".format(loan.total_interest()) }}</div></div>
+  <div class="glass stat-card"><div class="label">Remaining</div><div class="value">₹{{ "{:,.0f}".format(loan.remaining_amount()) }}</div></div>
+</div>
+
+<div class="grid grid-2" style="align-items:start;margin-bottom:16px;">
+  <div class="glass card">
+    <h3>Record a Payment</h3>
+    <form method="POST" action="{{ url_for('loans.record_payment', loan_id=loan.id) }}">
+      {{ form.hidden_tag() }}
+      {{ field(form.amount) }}
+      {{ field(form.paid_on) }}
+      {{ field(form.note) }}
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Record payment</button>
+    </form>
+  </div>
+
+  <div class="glass card">
+    <h3>Payment History</h3>
+    <table class="table">
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td style="color:var(--muted);">{{ p.paid_on.strftime('%d %b %Y') }}</td>
+          <td>{{ p.note or '—' }}</td>
+          <td style="text-align:right;font-family:var(--font-mono);font-weight:700;">₹{{ "{:,.0f}".format(p.amount) }}</td>
+        </tr>
+        {% else %}
+        <tr><td style="color:var(--muted);text-align:center;padding:24px 0;">No payments recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="glass card">
+  <h3>Amortization Schedule <span style="font-size:11px;color:var(--muted-2);font-weight:600;">(first 12 months)</span></h3>
+  <table class="table">
+    <thead><tr><th>Month</th><th>EMI</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead>
+    <tbody>
+      {% for row in schedule[:12] %}
+      <tr>
+        <td>{{ row.month }}</td>
+        <td>₹{{ "{:,.0f}".format(row.emi) }}</td>
+        <td style="color:var(--green);">₹{{ "{:,.0f}".format(row.principal) }}</td>
+        <td style="color:var(--muted);">₹{{ "{:,.0f}".format(row.interest) }}</td>
+        <td>₹{{ "{:,.0f}".format(row.balance) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if schedule|length > 12 %}
+  <p style="font-size:11.5px;color:var(--muted-2);margin-top:8px;">+ {{ schedule|length - 12 }} more months.</p>
+  {% endif %}
+</div>
+
+<form method="POST" action="{{ url_for('loans.delete', loan_id=loan.id) }}" onsubmit="return confirm('Delete this loan and all its payment history?');" style="margin-top:16px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-danger btn-sm">Delete loan</button>
+</form>
+{% endblock %}

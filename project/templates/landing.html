@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Lowkey AI — Smarter Spending Starts Here{% endblock %}
+{% block guest_content %}
+<nav class="landing-nav">
+  <div class="brand" style="display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:18px;">
+    <div class="brand-mark" style="width:32px;height:32px;border-radius:10px;background:var(--grad-1);display:flex;align-items:center;justify-content:center;color:#fff;">L</div>
+    Lowkey AI
+  </div>
+  <div style="display:flex;gap:10px;">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('auth.login') }}">Log in</a>
+    <a class="btn btn-primary btn-sm" href="{{ url_for('auth.register') }}">Get Started</a>
+  </div>
+</nav>
+
+<div class="landing-hero">
+  <h1>Smarter Spending<br><span class="accent">Starts Here.</span></h1>
+  <p>Track income and expenses, hit your budgets, and get plain-language insights about your money — all in one place.</p>
+  <a class="btn btn-primary" href="{{ url_for('auth.register') }}" style="padding:14px 30px;font-size:14px;">Get Started</a>
+</div>
+
+<div class="landing-widgets">
+  <div class="glass card">
+    <h3>Financial Health</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--muted);">
+      <div style="display:flex;justify-content:space-between;"><span>Monthly Income</span><b style="color:var(--text);">₹42,500</b></div>
+      <div style="display:flex;justify-content:space-between;"><span>Monthly Expense</span><b style="color:var(--text);">₹28,340</b></div>
+      <div style="display:flex;justify-content:space-between;"><span>Current Balance</span><b style="color:var(--text);">₹1,25,600</b></div>
+      <div style="display:flex;justify-content:space-between;"><span>Budget Remaining</span><b style="color:var(--green);">28%</b></div>
+    </div>
+  </div>
+  <div class="glass card">
+    <h3>AI Insights</h3>
+    <div class="insight-row"><span class="insight-dot"></span><span>You saved ₹2,300 this week</span></div>
+    <div class="insight-row"><span class="insight-dot"></span><span>Food expenses increased by 8%</span></div>
+    <div class="insight-row"><span class="insight-dot"></span><span>Monthly budget is 72% used</span></div>
+  </div>
+  <div class="glass card">
+    <h3>Quick Actions</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <span class="btn btn-glass btn-sm" style="justify-content:flex-start;">+ Add Expense</span>
+      <span class="btn btn-glass btn-sm" style="justify-content:flex-start;">+ Add Income</span>
+      <span class="btn btn-glass btn-sm" style="justify-content:flex-start;">📷 Scan Bill</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

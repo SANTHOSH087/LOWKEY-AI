@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}Set up 2FA — Lowkey AI{% endblock %}
+{% block page_title %}Set up two-factor authentication{% endblock %}
+
+{% block content %}
+<div class="glass card" style="max-width:420px;">
+  <ol style="font-size:13px;color:var(--muted);margin:0 0 16px 18px;padding:0;">
+    <li style="margin-bottom:8px;">Install Google Authenticator, Authy, or any TOTP app.</li>
+    <li style="margin-bottom:8px;">Scan this QR code with the app.</li>
+    <li>Enter the 6-digit code it shows to confirm setup.</li>
+  </ol>
+
+  <img src="{{ url_for('core.two_factor_qr') }}" alt="Scan this QR code with your authenticator app" style="width:180px;height:180px;display:block;margin:0 auto 14px;border-radius:12px;background:#fff;padding:8px;">
+
+  <p style="font-size:11.5px;color:var(--muted-2);text-align:center;margin-bottom:20px;word-break:break-all;">
+    Can't scan? Enter this key manually:<br><strong>{{ secret }}</strong>
+  </p>
+
+  <form method="POST" action="{{ url_for('core.two_factor_enable') }}">
+    {{ form.hidden_tag() }}
+    {{ field(form.code) }}
+    <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">Confirm and enable</button>
+  </form>
+</div>
+{% endblock %}

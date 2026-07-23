@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ client.name }} — Lowkey AI{% endblock %}
+{% block page_title %}{{ client.name }}{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('clients.list_view') }}" class="btn btn-ghost btn-sm" style="margin-bottom:16px;display:inline-block;">← All Clients</a>
+
+<div class="grid grid-2" style="align-items:start;">
+  <div class="glass card">
+    <h3>Contact</h3>
+    <table class="table">
+      <tr><td style="color:var(--muted);">Phone</td><td>{{ client.phone or '—' }}</td></tr>
+      <tr><td style="color:var(--muted);">Email</td><td>{{ client.email or '—' }}</td></tr>
+      <tr><td style="color:var(--muted);">Address</td><td>{{ client.address or '—' }}</td></tr>
+      <tr><td style="color:var(--muted);">Pending</td><td style="color:{{ 'var(--red)' if client.pending_amount else 'var(--text)' }};">₹{{ "{:,.0f}".format(client.pending_amount) }}</td></tr>
+    </table>
+    {% if client.notes %}<p style="font-size:12.5px;color:var(--muted);margin-top:12px;">{{ client.notes }}</p>{% endif %}
+    <a href="{{ url_for('clients.edit', client_id=client.id) }}" class="btn btn-ghost btn-sm" style="margin-top:14px;">Edit client</a>
+  </div>
+
+  <div class="glass card">
+    <h3>Purchase History</h3>
+    <table class="table">
+      <tbody>
+        {% for s in sales %}
+        <tr>
+          <td>{{ s.product.name }}</td>
+          <td style="color:var(--muted);">×{{ s.quantity }}</td>
+          <td style="color:var(--muted);">{{ s.sold_on.strftime('%d %b %Y') }}</td>
+          <td style="text-align:right;font-family:var(--font-mono);font-weight:700;">₹{{ "{:,.0f}".format(s.revenue()) }}</td>
+        </tr>
+        {% else %}
+        <tr><td style="color:var(--muted);text-align:center;padding:24px 0;">No purchases recorded for this client yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

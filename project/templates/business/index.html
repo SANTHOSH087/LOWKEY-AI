@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Business — Lowkey AI{% endblock %}
+{% block page_title %}Business{% endblock %}
+
+{% block content %}
+<div class="grid grid-4" style="margin-bottom:16px;">
+  <div class="glass stat-card"><div class="label">Revenue</div><div class="value">₹{{ "{:,.0f}".format(total_revenue) }}</div></div>
+  <div class="glass stat-card"><div class="label">Cost of Goods</div><div class="value">₹{{ "{:,.0f}".format(total_cost) }}</div></div>
+  <div class="glass stat-card">
+    <div class="label">{{ 'Loss' if loss else 'Profit' }}</div>
+    <div class="value" style="color:{{ 'var(--red)' if loss else 'var(--green)' }};">₹{{ "{:,.0f}".format(profit|abs) }}</div>
+  </div>
+  <div class="glass stat-card"><div class="label">Inventory Value</div><div class="value">₹{{ "{:,.0f}".format(inventory_value) }}</div></div>
+</div>
+
+<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+  <a href="{{ url_for('business.product_create') }}" class="btn btn-primary btn-sm">+ Add Product</a>
+  <a href="{{ url_for('business.sale_create') }}" class="btn btn-ghost btn-sm">+ Record Sale</a>
+  <a href="{{ url_for('business.purchase_create') }}" class="btn btn-ghost btn-sm">+ Record Purchase</a>
+  <a href="{{ url_for('business.supplier_list') }}" class="btn btn-ghost btn-sm">Suppliers</a>
+</div>
+
+{% if low_stock %}
+<div class="glass card" style="margin-bottom:16px;border:1px solid rgba(239,86,117,.35);">
+  <h3 style="color:var(--red);">⚠ Low Stock Alerts</h3>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    {% for p in low_stock %}
+      <span class="pill" style="color:var(--red);">{{ p.name }} — {{ p.stock_qty }} left</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="grid grid-2" style="align-items:start;">
+  <div class="glass card">
+    <h3>Products</h3>
+    <table class="table">
+      <thead><tr><th>Product</th><th>Stock</th><th>Purchase</th><th>Selling</th><th>Margin</th><th></th></tr></thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td>{{ p.name }}{% if p.sku %} <span style="color:var(--muted-2);font-size:11px;">({{ p.sku }})</span>{% endif %}</td>
+          <td>
+            {{ p.stock_qty }}
+            {% if p.is_low_stock() %}<span class="pill" style="color:var(--red);margin-left:4px;">Low</span>{% endif %}
+          </td>
+          <td>₹{{ "{:,.0f}".format(p.purchase_price) }}</td>
+          <td>₹{{ "{:,.0f}".format(p.selling_price) }}</td>
+          <td>{{ p.margin_percent() }}%</td>
+          <td style="white-space:nowrap;">
+            <a href="{{ url_for('business.product_edit', product_id=p.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+            <form method="POST" action="{{ url_for('business.product_delete', product_id=p.id) }}" style="display:inline;" onsubmit="return confirm('Delete this product?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="color:var(--muted);text-align:center;padding:24px 0;">No products yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="glass card">
+    <h3>Recent Sales</h3>
+    <table class="table">
+      <tbody>
+        {% for s in recent_sales %}
+        <tr>
+          <td>{{ s.product.name }}</td>
+          <td style="color:var(--muted);">×{{ s.quantity }}</td>
+          <td style="color:var(--muted);">{{ s.sold_on.strftime('%d %b') }}</td>
+          <td style="text-align:right;font-family:var(--font-mono);font-weight:700;color:var(--green);">₹{{ "{:,.0f}".format(s.revenue()) }}</td>
+        </tr>
+        {% else %}
+        <tr><td style="color:var(--muted);text-align:center;padding:24px 0;">No sales recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

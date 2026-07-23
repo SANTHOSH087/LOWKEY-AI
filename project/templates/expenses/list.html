@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Expenses — Lowkey AI{% endblock %}
+{% block page_title %}Expenses{% endblock %}
+
+{% block content %}
+<div class="glass card" style="margin-bottom:16px;">
+  <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+    <div class="field" style="margin:0;min-width:180px;">
+      <label>Search</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="Description…">
+    </div>
+    <div class="field" style="margin:0;min-width:160px;">
+      <label>Category</label>
+      <select name="category">
+        <option value="">All categories</option>
+        {% for c in categories %}
+          <option value="{{ c.id }}" {{ 'selected' if selected_category == c.id }}>{{ c.icon }} {{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field" style="margin:0;min-width:150px;">
+      <label>Payment method</label>
+      <select name="payment_method">
+        <option value="">All methods</option>
+        {% for m in ['Cash','Card','UPI','Net Banking','Wallet','Other'] %}
+          <option value="{{ m }}" {{ 'selected' if selected_payment == m }}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-ghost btn-sm">Filter</button>
+    <a href="{{ url_for('expenses.list_view') }}" class="btn btn-ghost btn-sm">Reset</a>
+    <div style="flex:1;"></div>
+    <a href="{{ url_for('expenses.export_csv') }}" class="btn btn-ghost btn-sm">⬇ Export CSV</a>
+    <a href="{{ url_for('expenses.create') }}" class="btn btn-primary btn-sm">+ Add Expense</a>
+  </form>
+</div>
+
+<div class="glass card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <h3 style="margin:0;">{{ expenses|length }} expense{{ 's' if expenses|length != 1 }}</h3>
+    <b style="font-family:var(--font-mono);">Total: ₹{{ "{:,.0f}".format(total) }}</b>
+  </div>
+  <table class="table">
+    <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Method</th><th style="text-align:right;">Amount</th><th></th></tr></thead>
+    <tbody>
+      {% for e in expenses %}
+      <tr>
+        <td style="color:var(--muted);">{{ e.spent_on.strftime('%d %b %Y') }}</td>
+        <td><span class="pill">{{ e.category.icon if e.category else '•' }} {{ e.category.name if e.category else 'Others' }}</span></td>
+        <td>{{ e.description or '—' }}{% if e.is_recurring %} <span class="pill" style="margin-left:4px;">↻ {{ e.recurring_interval }}</span>{% endif %}</td>
+        <td style="color:var(--muted);">{{ e.payment_method or '—' }}</td>
+        <td style="text-align:right;font-family:var(--font-mono);font-weight:700;">₹{{ "{:,.0f}".format(e.amount) }}</td>
+        <td style="white-space:nowrap;">
+          <a href="{{ url_for('expenses.edit', expense_id=e.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+          <form method="POST" action="{{ url_for('expenses.duplicate', expense_id=e.id) }}" style="display:inline;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-ghost btn-sm">Copy</button>
+          </form>
+          <form method="POST" action="{{ url_for('expenses.delete', expense_id=e.id) }}" style="display:inline;" onsubmit="return confirm('Delete this expense?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="color:var(--muted);text-align:center;padding:30px 0;">No expenses match — try clearing filters, or add your first one.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

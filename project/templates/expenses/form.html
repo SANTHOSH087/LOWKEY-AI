@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field, checkbox %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Expense — Lowkey AI{% endblock %}
+{% block page_title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Expense{% endblock %}
+
+{% block content %}
+<form method="POST" class="glass form-card">
+  {{ form.hidden_tag() }}
+  {{ field(form.amount) }}
+  {{ field(form.category_id) }}
+  {{ field(form.description) }}
+  {{ field(form.payment_method) }}
+  {{ field(form.location) }}
+  {{ field(form.tags) }}
+  {{ field(form.spent_on) }}
+  <div style="margin-bottom:16px;">{{ checkbox(form.is_recurring) }}</div>
+  {{ field(form.recurring_interval) }}
+
+  <div style="display:flex;gap:10px;margin-top:10px;">
+    <button type="submit" class="btn btn-primary">{{ 'Save changes' if mode == 'edit' else 'Add expense' }}</button>
+    <a href="{{ url_for('expenses.list_view') }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

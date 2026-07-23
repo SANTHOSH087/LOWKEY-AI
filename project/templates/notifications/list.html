@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Notifications — Lowkey AI{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    <a href="{{ url_for('notifications.list_view') }}" class="btn {{ 'btn-primary' if not kind_filter else 'btn-ghost' }} btn-sm">All</a>
+    {% for kind, label in kind_labels.items() %}
+      {% if kind != 'info' %}
+      <a href="{{ url_for('notifications.list_view', kind=kind) }}" class="btn {{ 'btn-primary' if kind_filter == kind else 'btn-ghost' }} btn-sm">{{ label }}</a>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% if unread_count %}
+  <form method="POST" action="{{ url_for('notifications.mark_all_read') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ request.full_path }}">
+    <button type="submit" class="btn btn-ghost btn-sm">Mark all as read ({{ unread_count }})</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="glass card">
+  {% for n in notifications %}
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border-soft);{{ 'opacity:.55;' if n.is_read }}">
+    <div style="display:flex;gap:10px;flex:1;min-width:0;">
+      <span style="width:8px;height:8px;border-radius:50%;background:{{ 'var(--purple-2)' if not n.is_read else 'var(--border-soft)' }};margin-top:6px;flex:none;"></span>
+      <div style="min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <b style="font-size:13.5px;">{{ n.title }}</b>
+          <span class="pill" style="font-size:10px;">{{ kind_labels.get(n.kind, n.kind) }}</span>
+        </div>
+        {% if n.body %}<p style="font-size:12.5px;color:var(--muted);margin-top:3px;">{{ n.body }}</p>{% endif %}
+        <p style="font-size:11px;color:var(--muted-2);margin-top:3px;">{{ n.created_at.strftime('%d %b %Y, %I:%M %p') }}</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex:none;">
+      {% if n.link %}
+      <form method="POST" action="{{ url_for('notifications.open_notification', notification_id=n.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-ghost btn-sm">Open</button>
+      </form>
+      {% elif not n.is_read %}
+      <form method="POST" action="{{ url_for('notifications.mark_read', notification_id=n.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <button type="submit" class="btn btn-ghost btn-sm">Mark read</button>
+      </form>
+      {% endif %}
+      <form method="POST" action="{{ url_for('notifications.delete', notification_id=n.id) }}" onsubmit="return confirm('Delete this notification?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <button type="submit" class="btn btn-danger btn-sm">✕</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <p style="color:var(--muted);text-align:center;padding:40px 0;">
+    {{ "No notifications in this category." if kind_filter else "You're all caught up — no notifications yet." }}
+  </p>
+  {% endfor %}
+</div>
+
+{% if pagination.pages > 1 %}
+<div style="display:flex;justify-content:center;gap:8px;margin-top:16px;">
+  {% if pagination.has_prev %}
+    <a href="{{ url_for('notifications.list_view', kind=kind_filter, page=pagination.prev_num) }}" class="btn btn-ghost btn-sm">← Prev</a>
+  {% endif %}
+  <span style="align-self:center;font-size:12.5px;color:var(--muted);">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+  {% if pagination.has_next %}
+    <a href="{{ url_for('notifications.list_view', kind=kind_filter, page=pagination.next_num) }}" class="btn btn-ghost btn-sm">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

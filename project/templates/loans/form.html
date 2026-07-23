@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}Add Loan — Lowkey AI{% endblock %}
+{% block page_title %}Add Loan{% endblock %}
+
+{% block content %}
+<form method="POST" class="glass form-card">
+  {{ form.hidden_tag() }}
+  {{ field(form.name) }}
+  {{ field(form.bank) }}
+  {{ field(form.principal) }}
+  {{ field(form.interest_rate) }}
+  {{ field(form.tenure_months) }}
+  {{ field(form.start_date) }}
+  <div style="display:flex;gap:10px;margin-top:10px;">
+    <button type="submit" class="btn btn-primary">Add loan</button>
+    <a href="{{ url_for('loans.list_view') }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

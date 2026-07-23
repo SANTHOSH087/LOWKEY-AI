@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}Restore data — Lowkey AI{% endblock %}
+{% block page_title %}Verify a backup{% endblock %}
+
+{% block content %}
+<div class="glass card" style="max-width:480px;">
+  <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">
+    Upload a Lowkey AI export file and its passphrase to verify it's readable. This only previews the contents here —
+    it doesn't write anything back into your account.
+  </p>
+  <form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <div class="field">
+      <label for="export_file">Export file (.enc)</label>
+      <input type="file" id="export_file" name="export_file" accept=".enc" required>
+    </div>
+    {{ field(form.passphrase) }}
+    <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">Decrypt and preview</button>
+  </form>
+</div>
+
+{% if restored %}
+<div class="glass card" style="max-width:480px;margin-top:20px;">
+  <h3>Contents</h3>
+  <table class="table">
+    <tr><td style="color:var(--muted);">Username</td><td>{{ restored.username }}</td></tr>
+    <tr><td style="color:var(--muted);">Email</td><td>{{ restored.email }}</td></tr>
+    <tr><td style="color:var(--muted);">Expenses</td><td>{{ restored.expenses|length }} records</td></tr>
+    <tr><td style="color:var(--muted);">Income entries</td><td>{{ restored.income|length }} records</td></tr>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

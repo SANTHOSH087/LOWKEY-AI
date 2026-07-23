@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Reports — Lowkey AI{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block content %}
+<form method="GET" class="glass card"
+  style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+  <div class="field" style="margin:0;min-width:170px;">
+    <label>Report type</label>
+    <select name="type" onchange="this.form.submit()">
+      {% for t in report_types %}
+      <option value="{{ t }}" {{ 'selected' if t==report_type }}>{{ type_labels[t] }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field" style="margin:0;min-width:150px;">
+    <label>Period</label>
+    <select name="period" id="periodSelect" onchange="toggleCustom(); this.form.submit();">
+      {% set period_label_map = {'daily': 'Today', 'weekly': 'Week', 'monthly': 'Month', 'yearly': 'Year', 'custom': 'Custom Date Range'} %}
+      {% for p in periods %}
+      <option value="{{ p }}" {{ 'selected' if p==period }}>{{ period_label_map.get(p, p|capitalize) }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field" id="customStartField" style="margin:0;min-width:150px;{{ 'display:none;' if period != 'custom' }}">
+    <label>From</label>
+    <input type="date" name="start" value="{{ custom_start }}">
+  </div>
+  <div class="field" id="customEndField" style="margin:0;min-width:150px;{{ 'display:none;' if period != 'custom' }}">
+    <label>To</label>
+    <input type="date" name="end" value="{{ custom_end }}">
+  </div>
+  <button type="submit" class="btn btn-ghost btn-sm">Apply</button>
+
+  <div style="flex:1;"></div>
+  <a href="{{ url_for('reports.export_pdf', type=report_type, period=period, start=custom_start, end=custom_end) }}"
+    class="btn btn-ghost btn-sm">⬇ PDF</a>
+  <a href="{{ url_for('reports.export_xlsx', type=report_type, period=period, start=custom_start, end=custom_end) }}"
+    class="btn btn-ghost btn-sm">⬇ Excel</a>
+  <a href="{{ url_for('reports.export_csv', type=report_type, period=period, start=custom_start, end=custom_end) }}"
+    class="btn btn-ghost btn-sm">⬇ CSV</a>
+</form>
+
+<p style="color:var(--muted);font-size:12.5px;margin-bottom:16px;">{{ type_labels[report_type] }} report · {{
+  period_label }}</p>
+
+<div class="grid grid-4" style="margin-bottom:16px;">
+  {% for key, value in report.summary.items() %}
+  <div class="glass stat-card">
+    <div class="label">{{ key }}</div>
+    <div class="value" style="font-size:17px;">{{ value }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if report.charts %}
+<div class="grid grid-2" style="margin-bottom:16px;">
+  {% for chart_key in report.charts %}
+  <div class="glass card">
+    <h3>{{ chart_key|replace('_',' ')|title }}</h3>
+    <div id="chart_empty_{{ chart_key }}"
+      style="color:var(--muted);font-size:13px;padding:24px 0;text-align:center;display:none;">
+      No chart data available for this period.
+    </div>
+    <div id="chart_container_{{ chart_key }}" class="chart-container" style="position: relative; height: 240px; width: 100%;">
+      <canvas id="chart_{{ chart_key }}" style="display:block; width: 100%; height: 240px;"></canvas>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="glass card">
+  <h3>Detail ({{ report.table_rows|length }} row{{ 's' if report.table_rows|length != 1 }})</h3>
+  <table class="table">
+    <thead>
+      <tr>{% for h in report.table_headers %}<th>{{ h }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for row in report.table_rows %}
+      <tr>
+        {% for cell in row %}
+        <td {{ 'style="text-align:right;font-family:var(--font-mono);"' if cell is float or cell is integer }}>
+          {{ "₹{:,.2f}".format(cell) if cell is float else cell }}
+        </td>
+        {% endfor %}
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{{ report.table_headers|length }}" style="color:var(--muted);text-align:center;padding:30px 0;">No
+          data in this period.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script>
+  window._lk_charts = window._lk_charts || {};
+  function toggleCustom() {
+    const isCustom = document.getElementById('periodSelect').value === 'custom';
+    document.getElementById('customStartField').style.display = isCustom ? '' : 'none';
+    document.getElementById('customEndField').style.display = isCustom ? '' : 'none';
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Chart === 'undefined') {
+      console.warn('Chart.js missing');
+      return;
+    }
+
+    const chartsData = {{ report.charts| tojson }} || {};
+    const palette = ['#8f7bff', '#4fc3ff', '#ffd27a', '#26b285', '#ef5675', '#d79f2c', '#4fe3ac'];
+
+    Object.entries(chartsData).forEach(([key, data]) => {
+      try {
+        const canvas = document.getElementById('chart_' + key);
+        const emptyMessage = document.getElementById('chart_empty_' + key);
+        const container = document.getElementById('chart_container_' + key);
+        if (!canvas) return;
+
+        // Robustly destroy any previous chart instance associated with this canvas
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+          try { existingChart.destroy(); } catch (e) { console.warn('Error destroying chart via Chart.getChart', e); }
+        }
+        if (window._lk_charts[key]) {
+          try { window._lk_charts[key].destroy(); } catch (e) { console.warn('Error destroying window chart instance', e); }
+        }
+
+        const labels = Array.isArray(data.labels) ? data.labels : [];
+        const values = Array.isArray(data.values) ? data.values.map(v => Number(v) || 0) : [];
+        const hasData = labels.length > 0 && values.some(v => v !== 0);
+
+        // Requirement: Log labels and dataset values before rendering
+        console.log('Report Chart - Key:', key, 'Labels:', labels, 'Values:', values);
+
+        if (!hasData) {
+          if (emptyMessage) emptyMessage.style.display = 'block';
+          if (container) container.style.display = 'none';
+          canvas.style.display = 'none';
+          return;
+        }
+
+        if (emptyMessage) emptyMessage.style.display = 'none';
+        if (container) container.style.display = 'block';
+        canvas.style.display = 'block';
+
+        const chartType = 'bar';
+        const labelText = data.label || key.replace(/_/g, ' ');
+
+        const cfg = {
+          type: chartType,
+          data: {
+            labels,
+            datasets: [{
+              label: labelText,
+              data: values,
+              backgroundColor: labels.map((_, i) => palette[i % palette.length]),
+              borderColor: labels.map((_, i) => palette[i % palette.length]),
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return labelText + ': ₹' + context.formattedValue;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                title: { display: true, text: 'Amount (₹)', color: '#999', font: { size: 12 } },
+                ticks: {
+                  font: { size: 11 },
+                  callback: function (value) { return '₹' + value; }
+                },
+                beginAtZero: true
+              },
+              x: {
+                title: { display: true, text: 'Category / Metric', color: '#999', font: { size: 12 } },
+                ticks: { font: { size: 11 }, maxRotation: 60, minRotation: 0 }
+              }
+            }
+          }
+        };
+
+        window._lk_charts[key] = new Chart(canvas, cfg);
+      } catch (e) {
+        console.error('chart init error', key, e);
+      }
+    });
+  });
+</script>
+{% endblock %}

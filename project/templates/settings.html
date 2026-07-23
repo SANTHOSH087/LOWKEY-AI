@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Settings — Lowkey AI{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+  <div class="glass card">
+    <h3>Preferences</h3>
+    <div class="field">
+      <label>Currency</label>
+      <select disabled><option>₹ Indian Rupee (INR)</option></select>
+    </div>
+    <div class="field">
+      <label>Theme</label>
+      <p style="font-size:12.5px;color:var(--muted);">Use the switcher in the top-right corner — it's saved automatically on this device.</p>
+    </div>
+  </div>
+
+  <div class="glass card">
+    <h3>Data</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <a class="btn btn-ghost btn-sm" href="{{ url_for('expenses.export_csv') }}" style="justify-content:flex-start;">⬇ Export expenses (CSV)</a>
+      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;" disabled>⬆ Import data (coming soon)</button>
+      <button class="btn btn-ghost btn-sm" style="justify-content:flex-start;" disabled>🗄 Backup account (coming soon)</button>
+    </div>
+  </div>
+
+  <div class="glass card">
+    <h3>Security</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">Two-factor authentication, active sessions, and recent account activity.</p>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('core.security') }}">Go to Security</a>
+  </div>
+
+  <div class="glass card">
+    <h3 style="color:var(--red);">Danger zone</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">Deleting your account is permanent and removes all expenses, income, budgets, invoices, and every other record tied to it. This cannot be undone.</p>
+    <button type="button" class="btn btn-danger btn-sm" onclick="open3DModal('deleteAccountModal')">Delete account</button>
+  </div>
+</div>
+
+<div id="deleteAccountModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);align-items:center;justify-content:center;z-index:999;">
+  <div class="glass card" style="max-width:380px;width:90%;">
+    <h3 style="color:var(--red);">Delete your account?</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">This permanently deletes your account and every record tied to it — expenses, income, budgets, invoices, loans, EMIs, and more. There is no undo.</p>
+    <form method="POST" action="{{ url_for('core.delete_account') }}">
+      {{ delete_form.hidden_tag() }}
+      <div class="field">
+        <label for="{{ delete_form.password.id }}">Password</label>
+        {{ delete_form.password() }}
+        {% for error in delete_form.password.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="field">
+        <label for="{{ delete_form.confirm_text.id }}">Type DELETE to confirm</label>
+        {{ delete_form.confirm_text() }}
+        {% for error in delete_form.confirm_text.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="close3DModal('deleteAccountModal')">Cancel</button>
+        <button type="submit" class="btn btn-danger btn-sm">Permanently delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

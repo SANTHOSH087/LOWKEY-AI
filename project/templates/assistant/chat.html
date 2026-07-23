@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant — Lowkey AI{% endblock %}
+{% block page_title %}AI Assistant{% endblock %}
+
+{% block extra_head %}
+<style>
+  .chat-shell {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 160px);
+    max-width: 720px;
+  }
+
+  .chat-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bubble {
+    max-width: 78%;
+    padding: 11px 15px;
+    border-radius: 16px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .bubble.user {
+    align-self: flex-end;
+    background: var(--grad-1);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .bubble.assistant {
+    align-self: flex-start;
+    background: var(--surface-hi);
+    border: 1px solid var(--border-soft);
+    border-bottom-left-radius: 4px;
+  }
+
+  .chat-input-row {
+    display: flex;
+    gap: 8px;
+    padding: 14px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .chat-input-row input {
+    flex: 1;
+    padding: 11px 15px;
+    border-radius: 999px;
+    border: 1px solid var(--border-soft);
+    background: var(--surface-hi);
+    color: var(--text);
+    font-size: 13.5px;
+    outline: none;
+  }
+
+  .chat-input-row input:focus {
+    border-color: var(--purple-2);
+  }
+
+  .typing-dots {
+    display: inline-flex;
+    gap: 3px;
+    align-self: flex-start;
+    background: var(--surface-hi);
+    border: 1px solid var(--border-soft);
+    padding: 11px 15px;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+  }
+
+  .typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: typingBounce 1.2s infinite ease-in-out;
+  }
+
+  .typing-dots span:nth-child(2) {
+    animation-delay: .15s;
+  }
+
+  .typing-dots span:nth-child(3) {
+    animation-delay: .3s;
+  }
+
+  @keyframes typingBounce {
+
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+      opacity: .4;
+    }
+
+    30% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
+  }
+
+  .suggestion-chip {
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--surface-hi);
+    border: 1px solid var(--border-soft);
+    font-size: 11.5px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .suggestion-chip:hover {
+    color: var(--text);
+    border-color: var(--purple-2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="glass chat-shell">
+  <div
+    style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border-soft);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="assistant-globe"
+        style="width:32px;height:32px;border-radius:10px;background:var(--grad-1);display:flex;align-items:center;justify-content:center;color:#fff;">
+        ✦</div>
+      <div>
+        <div style="font-weight:700;font-size:13.5px;">Lowkey Assistant</div>
+        <div style="font-size:11px;color:var(--muted);">{{ "LLM-enhanced" if llm_enabled else "Reads your real data" }}
+        </div>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('assistant.clear') }}"
+      onsubmit="return confirm('Clear the whole conversation?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-ghost btn-sm">Clear</button>
+    </form>
+  </div>
+
+  <div class="chat-log" id="chatLog">
+    {% if not history %}
+    <div class="bubble assistant">
+      Hi — I'm your Lowkey assistant. Ask me about your expenses, income, budgets, savings, loans, EMIs, invoices, or
+      business performance, and I'll answer from your real data.
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 4px;">
+      <span class="suggestion-chip" onclick="askSuggestion(this)">How much did I spend this month?</span>
+      <span class="suggestion-chip" onclick="askSuggestion(this)">What's my savings rate?</span>
+      <span class="suggestion-chip" onclick="askSuggestion(this)">Am I over budget?</span>
+      <span class="suggestion-chip" onclick="askSuggestion(this)">How much do I owe on loans?</span>
+    </div>
+    {% endif %}
+    {% for m in history %}
+    <div class="bubble {{ m.role }}">{{ m.content }}</div>
+    {% endfor %}
+  </div>
+
+  <form class="chat-input-row" id="chatForm">
+    <input type="text" id="questionInput" placeholder="Ask about your finances…" autocomplete="off" maxlength="500">
+    <button type="submit" class="btn btn-primary btn-sm">Send</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const chatLog = document.getElementById('chatLog');
+  const chatForm = document.getElementById('chatForm');
+  const questionInput = document.getElementById('questionInput');
+  const csrfToken = "{{ csrf_token() }}";
+
+  function scrollToBottom() { chatLog.scrollTop = chatLog.scrollHeight; }
+  scrollToBottom();
+
+  function addBubble(role, text) {
+    const div = document.createElement('div');
+    div.className = 'bubble ' + role;
+    div.textContent = text;
+    chatLog.appendChild(div);
+    scrollToBottom();
+  }
+
+  function askSuggestion(el) {
+    questionInput.value = el.textContent;
+    chatForm.requestSubmit();
+  }
+
+  chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = questionInput.value.trim();
+    if (!question) return;
+
+    addBubble('user', question);
+    questionInput.value = '';
+    questionInput.disabled = true;
+
+    const typing = document.createElement('div');
+    typing.className = 'typing-dots';
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    chatLog.appendChild(typing);
+    scrollToBottom();
+
+    try {
+      const resp = await fetch("{{ url_for('assistant.ask') }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ question, csrf_token: csrfToken }),
+      });
+      const data = await resp.json();
+      typing.remove();
+      if (resp.ok) {
+        addBubble('assistant', data.reply);
+      } else {
+        addBubble('assistant', data.error || "Something went wrong — try again.");
+      }
+    } catch (err) {
+      typing.remove();
+      addBubble('assistant', "Couldn't reach the server — check your connection and try again.");
+    } finally {
+      questionInput.disabled = false;
+      questionInput.focus();
+    }
+  });
+</script>
+{% endblock %}

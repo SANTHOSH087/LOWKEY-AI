@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field, checkbox %}
+{% block title %}Review Scan — Lowkey AI{% endblock %}
+{% block page_title %}Review Scanned Receipt{% endblock %}
+
+{% block content %}
+<div class="grid grid-2" style="align-items:start;">
+  <!-- Receipt image + what OCR found -->
+  <div class="glass card">
+    <h3>Scanned image</h3>
+    <img src="{{ url_for('ocr.receipt_image', receipt_id=receipt.id) }}" alt="Scanned receipt" style="width:100%;border-radius:12px;margin-bottom:14px;">
+
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+      OCR confidence: <b style="color:var(--text);">{{ receipt.ocr_confidence }}%</b>
+      {% if receipt.ocr_confidence < 60 %}
+        <span class="pill" style="color:var(--red);margin-left:6px;">Low confidence — check fields carefully</span>
+      {% endif %}
+    </div>
+
+    {% if parsed['items'] %}
+    <h3 style="margin-top:14px;">Detected line items</h3>
+    <table class="table">
+      <tbody>
+        {% for item in parsed['items'] %}
+        <tr><td>{{ item.name }}</td><td style="text-align:right;font-family:var(--font-mono);">₹{{ "%.2f"|format(item.amount) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <details style="margin-top:14px;">
+      <summary style="cursor:pointer;font-size:12px;color:var(--muted);">Raw OCR text</summary>
+      <pre style="white-space:pre-wrap;font-size:11px;color:var(--muted);margin-top:8px;max-height:200px;overflow-y:auto;">{{ receipt.raw_text }}</pre>
+    </details>
+  </div>
+
+  <!-- Editable expense form, pre-populated -->
+  <div class="glass card">
+    <h3>Confirm expense details</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+      Pre-filled from the scan{% if parsed['suggested_category'] %} — suggested category: <b>{{ parsed['suggested_category'] }}</b>{% endif %}.
+      Edit anything before saving.
+    </p>
+
+    <form method="POST">
+      {{ form.hidden_tag() }}
+      {{ field(form.amount) }}
+
+      <div class="field">
+        <label>GST amount (detected: {{ ('₹%.2f'|format(parsed['gst_amount'])) if parsed['gst_amount'] else '—' }}{% if parsed['gst_number'] %}, GSTIN {{ parsed['gst_number'] }}{% endif %})</label>
+        <input type="number" step="0.01" name="gst_amount" value="{{ parsed['gst_amount'] or '' }}">
+      </div>
+
+      {{ field(form.category_id) }}
+      {{ field(form.description) }}
+      {{ field(form.payment_method) }}
+      {{ field(form.location) }}
+      {{ field(form.tags) }}
+      {{ field(form.spent_on) }}
+      <div style="margin-bottom:16px;">{{ checkbox(form.is_recurring) }}</div>
+      {{ field(form.recurring_interval) }}
+
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary">Save as Expense</button>
+        <a href="{{ url_for('ocr.scanner') }}" class="btn btn-ghost">Discard &amp; rescan</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

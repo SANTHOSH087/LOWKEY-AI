@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Budgets — Lowkey AI{% endblock %}
+{% block page_title %}Budgets{% endblock %}
+
+{% block content %}
+<svg width="0" height="0" style="position:absolute;">
+  <defs><linearGradient id="ringGrad"><stop offset="0" stop-color="var(--purple)"/><stop offset="1" stop-color="var(--blue)"/></linearGradient></defs>
+</svg>
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+  <a href="{{ url_for('budgets.create') }}" class="btn btn-primary btn-sm">+ New Budget</a>
+</div>
+
+<div class="grid grid-3">
+  {% for row in rows %}
+  {% set b = row.budget %}
+  <div class="glass card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h3 style="margin-bottom:2px;">{{ b.name }}</h3>
+        <span class="pill">{{ b.period|capitalize }}</span>
+        {% if b.category %}<span class="pill">{{ b.category.icon }} {{ b.category.name }}</span>{% endif %}
+      </div>
+      <div class="ring-wrap" style="width:56px;height:56px;">
+        <svg width="56" height="56">
+          <circle class="ring-bg" cx="28" cy="28" r="22" stroke-width="5" fill="none"/>
+          <circle class="ring-fg" cx="28" cy="28" r="22" stroke-width="5" fill="none"
+                  stroke-dasharray="138.2" stroke-dashoffset="{{ 138.2 * (1 - (row.percent/100 if row.percent <= 100 else 1)) }}" stroke-linecap="round"/>
+        </svg>
+        <span class="ring-label" style="font-size:11px;">{{ row.percent|round|int }}%</span>
+      </div>
+    </div>
+    <div style="margin-top:14px;font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;">
+      <span>Spent ₹{{ "{:,.0f}".format(row.spent) }}</span>
+      <span>of ₹{{ "{:,.0f}".format(b.amount) }}</span>
+    </div>
+    <div style="height:6px;border-radius:99px;background:var(--border-soft);margin-top:6px;overflow:hidden;">
+      <div style="height:100%;border-radius:99px;background:var(--grad-1);width:{{ row.percent if row.percent <= 100 else 100 }}%;"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <a href="{{ url_for('budgets.edit', budget_id=b.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+      <form method="POST" action="{{ url_for('budgets.delete', budget_id=b.id) }}" onsubmit="return confirm('Delete this budget?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="glass card" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">
+    No budgets yet. <a href="{{ url_for('budgets.create') }}" style="color:var(--purple);font-weight:700;">Create your first one →</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

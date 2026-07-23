@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} EMI — Lowkey AI{% endblock %}
+{% block page_title %}{{ 'Edit' if mode == 'edit' else 'Add' }} EMI{% endblock %}
+
+{% block content %}
+<form method="POST" class="glass form-card">
+  {{ form.hidden_tag() }}
+  {{ field(form.name) }}
+  {{ field(form.bank) }}
+  {{ field(form.interest_rate) }}
+  {{ field(form.monthly_amount) }}
+  {{ field(form.total_installments) }}
+  {{ field(form.installments_paid) }}
+  {{ field(form.due_day) }}
+  {{ field(form.start_date) }}
+  <div style="display:flex;gap:10px;margin-top:10px;">
+    <button type="submit" class="btn btn-primary">{{ 'Save changes' if mode == 'edit' else 'Add EMI' }}</button>
+    <a href="{{ url_for('emi.list_view') }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}

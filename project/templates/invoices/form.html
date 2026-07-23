@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'New' }} Invoice — Lowkey AI{% endblock %}
+{% block page_title %}{{ 'Edit' if mode == 'edit' else 'New' }} Invoice{% endblock %}
+
+{% block content %}
+<form method="POST" class="glass card" id="invoiceForm" style="max-width:900px;">
+  {{ form.hidden_tag() }}
+
+  <div class="grid grid-3">
+    {{ field(form.client_id) }}
+    {{ field(form.status) }}
+    {{ field(form.issued_on) }}
+  </div>
+  <div class="grid grid-3">
+    {{ field(form.due_on) }}
+    {{ field(form.discount_type) }}
+    {{ field(form.discount_value) }}
+  </div>
+  {{ field(form.notes) }}
+
+  <h3 style="margin:18px 0 10px;">Line Items</h3>
+  <div id="itemRows"></div>
+  <button type="button" class="btn btn-ghost btn-sm" id="addRowBtn" style="margin-top:8px;">+ Add line item</button>
+
+  <div style="display:flex;justify-content:flex-end;margin-top:20px;">
+    <div style="width:280px;display:flex;flex-direction:column;gap:6px;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Subtotal</span><b id="sumSubtotal">₹0.00</b></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Discount</span><b id="sumDiscount">₹0.00</b></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">GST</span><b id="sumGst">₹0.00</b></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border-soft);padding-top:6px;margin-top:4px;">
+        <span style="font-weight:700;">Grand Total</span><b id="sumTotal" style="font-family:var(--font-mono);font-size:16px;">₹0.00</b>
+      </div>
+    </div>
+  </div>
+
+  <div id="formError" style="color:var(--red);font-size:12.5px;margin-top:10px;display:none;"></div>
+
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button type="submit" class="btn btn-primary">{{ 'Save changes' if mode == 'edit' else 'Create invoice' }}</button>
+    <a href="{{ url_for('invoices.list_view') }}" class="btn btn-ghost">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const PRODUCTS = [
+  {% for p in products %}
+  { id: {{ p.id }}, name: {{ p.name|tojson }}, price: {{ p.selling_price }} },
+  {% endfor %}
+];
+</script>
+<script>
+// existing line items for edit mode, built server-side into plain data
+const existingItems = [
+  {% if invoice %}
+    {% for item in invoice.items %}
+    { description: {{ item.description|tojson }}, quantity: {{ item.quantity }}, unit_price: {{ item.unit_price }}, gst_rate: {{ item.gst_rate }}, product_id: {{ item.product_id or 0 }} },
+    {% endfor %}
+  {% endif %}
+];
+
+const rowsContainer = document.getElementById('itemRows');
+const currency = "₹";
+
+function rowTemplate(item) {
+  item = item || { description: '', quantity: 1, unit_price: 0, gst_rate: 18, product_id: 0 };
+  const options = ['<option value="0">— Custom item —</option>']
+    .concat(PRODUCTS.map(p => `<option value="${p.id}" data-price="${p.price}" ${p.id===item.product_id?'selected':''}>${p.name}</option>`));
+  const div = document.createElement('div');
+  div.className = 'glass';
+  div.style.cssText = 'display:grid;grid-template-columns:1.6fr 1fr 0.7fr 1fr 0.8fr auto;gap:8px;padding:10px;margin-bottom:8px;align-items:center;';
+  div.innerHTML = `
+    <select class="item-product" style="padding:8px;border-radius:8px;border:1px solid var(--border-soft);background:var(--surface-hi);color:var(--text);">${options.join('')}</select>
+    <input class="item-description" type="text" placeholder="Description" required value="${item.description.replace(/"/g,'&quot;')}" style="padding:8px;border-radius:8px;border:1px solid var(--border-soft);background:var(--surface-hi);color:var(--text);">
+    <input class="item-quantity" type="number" step="0.01" min="0.01" placeholder="Qty" required value="${item.quantity}" style="padding:8px;border-radius:8px;border:1px solid var(--border-soft);background:var(--surface-hi);color:var(--text);">
+    <input class="item-price" type="number" step="0.01" min="0" placeholder="Price" required value="${item.unit_price}" style="padding:8px;border-radius:8px;border:1px solid var(--border-soft);background:var(--surface-hi);color:var(--text);">
+    <input class="item-gst" type="number" step="0.01" min="0" max="100" placeholder="GST %" value="${item.gst_rate}" style="padding:8px;border-radius:8px;border:1px solid var(--border-soft);background:var(--surface-hi);color:var(--text);">
+    <button type="button" class="btn btn-danger btn-sm remove-row">✕</button>
+  `;
+  return div;
+}
+
+function addRow(item) {
+  const row = rowTemplate(item);
+  rowsContainer.appendChild(row);
+
+  const productSelect = row.querySelector('.item-product');
+  const priceInput = row.querySelector('.item-price');
+  const descInput = row.querySelector('.item-description');
+  productSelect.addEventListener('change', () => {
+    const opt = productSelect.selectedOptions[0];
+    if (opt.value !== '0') {
+      priceInput.value = opt.dataset.price;
+      if (!descInput.value) descInput.value = opt.textContent;
+      recalc();
+    }
+  });
+  row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalc));
+  row.querySelector('.remove-row').addEventListener('click', () => { row.remove(); recalc(); });
+}
+
+function recalc() {
+  let subtotal = 0, gstTotal = 0;
+  const discountType = document.querySelector('[name="discount_type"]').value;
+  const discountValue = parseFloat(document.querySelector('[name="discount_value"]').value) || 0;
+
+  document.querySelectorAll('#itemRows > div').forEach(row => {
+    const qty = parseFloat(row.querySelector('.item-quantity').value) || 0;
+    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+    const gst = parseFloat(row.querySelector('.item-gst').value) || 0;
+    const lineSub = qty * price;
+    subtotal += lineSub;
+    gstTotal += lineSub * (gst / 100);
+  });
+
+  const discountAmount = discountType === 'percent' ? subtotal * (discountValue / 100) : Math.min(discountValue, subtotal);
+  const discountRatio = subtotal ? discountAmount / subtotal : 0;
+  const gstAfterDiscount = gstTotal * (1 - discountRatio);
+  const grandTotal = (subtotal - discountAmount) + gstAfterDiscount;
+
+  document.getElementById('sumSubtotal').textContent = currency + subtotal.toFixed(2);
+  document.getElementById('sumDiscount').textContent = '−' + currency + discountAmount.toFixed(2);
+  document.getElementById('sumGst').textContent = currency + gstAfterDiscount.toFixed(2);
+  document.getElementById('sumTotal').textContent = currency + grandTotal.toFixed(2);
+}
+
+document.getElementById('addRowBtn').addEventListener('click', () => addRow());
+document.querySelector('[name="discount_type"]').addEventListener('change', recalc);
+document.querySelector('[name="discount_value"]').addEventListener('input', recalc);
+
+if (existingItems.length) {
+  existingItems.forEach(addRow);
+} else {
+  addRow();
+}
+recalc();
+
+// serialize rows into hidden inputs the Flask route expects (item_description[] etc.)
+document.getElementById('invoiceForm').addEventListener('submit', (e) => {
+  const rows = document.querySelectorAll('#itemRows > div');
+  let validCount = 0;
+  document.querySelectorAll('input[data-generated]').forEach(el => el.remove());
+
+  rows.forEach(row => {
+    const desc = row.querySelector('.item-description').value.trim();
+    const qty = row.querySelector('.item-quantity').value;
+    const price = row.querySelector('.item-price').value;
+    const gst = row.querySelector('.item-gst').value || 0;
+    const productId = row.querySelector('.item-product').value;
+    if (!desc || !qty || parseFloat(qty) <= 0) return;
+    validCount++;
+    [
+      ['item_description[]', desc], ['item_quantity[]', qty], ['item_unit_price[]', price],
+      ['item_gst_rate[]', gst], ['item_product_id[]', productId],
+    ].forEach(([name, value]) => {
+      const inp = document.createElement('input');
+      inp.type = 'hidden'; inp.name = name; inp.value = value; inp.dataset.generated = '1';
+      e.target.appendChild(inp);
+    });
+  });
+
+  const errorEl = document.getElementById('formError');
+  if (validCount === 0) {
+    e.preventDefault();
+    errorEl.textContent = 'Add at least one line item with a description and quantity.';
+    errorEl.style.display = 'block';
+  } else {
+    errorEl.style.display = 'none';
+  }
+});
+</script>
+{% endblock %}

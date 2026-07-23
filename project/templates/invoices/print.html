@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ invoice.invoice_number }} — Print</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #15161f; padding: 40px; max-width: 800px; margin: 0 auto; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #15161f; padding-bottom: 16px; margin-bottom: 20px; }
+  .brand { font-weight: 700; font-size: 22px; }
+  .muted { color: #6b6f8a; font-size: 12px; }
+  .meta { display: flex; justify-content: space-between; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: #6b6f8a; border-bottom: 1px solid #ddd; padding: 6px 4px; }
+  td { padding: 8px 4px; border-bottom: 1px solid #eee; font-size: 13px; }
+  .totals { width: 260px; margin-left: auto; font-size: 13px; }
+  .totals div { display: flex; justify-content: space-between; padding: 4px 0; }
+  .totals .grand { border-top: 2px solid #15161f; font-weight: 700; font-size: 15px; padding-top: 8px; margin-top: 4px; }
+  .qr { text-align: center; margin-top: 30px; }
+  .qr img { width: 120px; }
+  .print-btn { margin-bottom: 20px; }
+  @media print { .print-btn { display: none; } }
+</style>
+</head>
+<body>
+  <button class="print-btn" onclick="window.print()">🖨 Print this invoice</button>
+
+  <div class="header">
+    <div>
+      <div class="brand">Lowkey AI</div>
+      <div class="muted">Invoice</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="brand" style="font-family:monospace;">{{ invoice.invoice_number }}</div>
+      <div class="muted">Status: {{ invoice.effective_status() }}</div>
+    </div>
+  </div>
+
+  <div class="meta">
+    <div>
+      <div class="muted">Issued: {{ invoice.issued_on.strftime('%d %b %Y') }}</div>
+      {% if invoice.due_on %}<div class="muted">Due: {{ invoice.due_on.strftime('%d %b %Y') }}</div>{% endif %}
+    </div>
+    {% if invoice.client %}
+    <div style="text-align:right;">
+      <div style="font-weight:700;">{{ invoice.client.name }}</div>
+      {% if invoice.client.phone %}<div class="muted">{{ invoice.client.phone }}</div>{% endif %}
+      {% if invoice.client.email %}<div class="muted">{{ invoice.client.email }}</div>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <table>
+    <thead><tr><th>Description</th><th>Qty</th><th>Price</th><th>GST</th><th style="text-align:right;">Total</th></tr></thead>
+    <tbody>
+      {% for item in invoice.items %}
+      <tr>
+        <td>{{ item.description }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>₹{{ "{:,.2f}".format(item.unit_price) }}</td>
+        <td>{{ item.gst_rate }}%</td>
+        <td style="text-align:right;">₹{{ "{:,.2f}".format(item.line_total()) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div><span>Subtotal</span><b>₹{{ "{:,.2f}".format(invoice.subtotal()) }}</b></div>
+    {% if invoice.discount_amount() %}<div><span>Discount</span><b>−₹{{ "{:,.2f}".format(invoice.discount_amount()) }}</b></div>{% endif %}
+    {% for rate, amount in invoice.tax_summary().items() %}
+      {% if amount %}<div><span>GST {{ rate }}%</span><b>₹{{ "{:,.2f}".format(amount) }}</b></div>{% endif %}
+    {% endfor %}
+    <div class="grand"><span>Grand Total</span><b>₹{{ "{:,.2f}".format(invoice.grand_total()) }}</b></div>
+  </div>
+
+  {% if invoice.notes %}<p class="muted">{{ invoice.notes }}</p>{% endif %}
+
+  <div class="qr">
+    <img src="{{ url_for('invoices.qr_image', invoice_id=invoice.id) }}" alt="QR code">
+    <div class="muted">Scan to verify</div>
+  </div>
+</body>
+</html>

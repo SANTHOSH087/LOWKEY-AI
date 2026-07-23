@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "partials/form_macros.html" import field %}
+{% block title %}{{ invoice.invoice_number }} — Lowkey AI{% endblock %}
+{% block page_title %}{{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+  <a href="{{ url_for('invoices.list_view') }}" class="btn btn-ghost btn-sm">← All Invoices</a>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('invoices.print_view', invoice_id=invoice.id) }}" target="_blank" class="btn btn-ghost btn-sm">🖨 Print</a>
+    <a href="{{ url_for('invoices.download_pdf', invoice_id=invoice.id) }}" target="_blank" class="btn btn-ghost btn-sm">⬇ Download PDF</a>
+    <a href="{{ url_for('invoices.edit', invoice_id=invoice.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+  </div>
+</div>
+
+<div class="grid grid-3" style="margin-bottom:16px;">
+  <div class="glass stat-card">
+    <div class="label">Status</div>
+    {% set st = invoice.effective_status() %}
+    <div class="value" style="font-size:16px;color:{{ {'Paid':'var(--green)','Overdue':'var(--red)','Sent':'var(--purple)','Draft':'var(--muted)'}[st] }};">{{ st }}</div>
+  </div>
+  <div class="glass stat-card"><div class="label">Grand Total</div><div class="value">₹{{ "{:,.2f}".format(invoice.grand_total()) }}</div></div>
+  <div class="glass stat-card"><div class="label">Balance Due</div><div class="value" style="color:{{ 'var(--red)' if invoice.balance_due() else 'var(--green)' }};">₹{{ "{:,.2f}".format(invoice.balance_due()) }}</div></div>
+</div>
+
+<div class="grid grid-2" style="align-items:start;margin-bottom:16px;">
+  <div class="glass card">
+    <h3>Details</h3>
+    <table class="table">
+      <tr><td style="color:var(--muted);">Client</td><td>{{ invoice.client.name if invoice.client else '—' }}</td></tr>
+      <tr><td style="color:var(--muted);">Issued</td><td>{{ invoice.issued_on.strftime('%d %b %Y') }}</td></tr>
+      <tr><td style="color:var(--muted);">Due</td><td>{{ invoice.due_on.strftime('%d %b %Y') if invoice.due_on else '—' }}</td></tr>
+    </table>
+
+    <h3 style="margin-top:16px;">Line Items</h3>
+    <table class="table">
+      <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>GST</th><th style="text-align:right;">Total</th></tr></thead>
+      <tbody>
+        {% for item in invoice.items %}
+        <tr>
+          <td>{{ item.description }}</td>
+          <td style="color:var(--muted);">{{ item.quantity }}</td>
+          <td style="color:var(--muted);">₹{{ "{:,.2f}".format(item.unit_price) }}</td>
+          <td style="color:var(--muted);">{{ item.gst_rate }}%</td>
+          <td style="text-align:right;font-family:var(--font-mono);">₹{{ "{:,.2f}".format(item.line_total()) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+      <div style="width:240px;font-size:13px;display:flex;flex-direction:column;gap:5px;">
+        <div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Subtotal</span><b>₹{{ "{:,.2f}".format(invoice.subtotal()) }}</b></div>
+        {% if invoice.discount_amount() %}<div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">Discount</span><b>−₹{{ "{:,.2f}".format(invoice.discount_amount()) }}</b></div>{% endif %}
+        {% for rate, amount in invoice.tax_summary().items() %}
+          {% if amount %}<div style="display:flex;justify-content:space-between;"><span style="color:var(--muted);">GST {{ rate }}%</span><b>₹{{ "{:,.2f}".format(amount) }}</b></div>{% endif %}
+        {% endfor %}
+        <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border-soft);padding-top:5px;"><b>Grand Total</b><b style="font-family:var(--font-mono);">₹{{ "{:,.2f}".format(invoice.grand_total()) }}</b></div>
+      </div>
+    </div>
+    {% if invoice.notes %}<p style="font-size:12px;color:var(--muted);margin-top:14px;">{{ invoice.notes }}</p>{% endif %}
+  </div>
+
+  <div>
+    <div class="glass card" style="margin-bottom:16px;text-align:center;">
+      <h3>Scan to Verify</h3>
+      <img src="{{ url_for('invoices.qr_image', invoice_id=invoice.id) }}" alt="Invoice QR code" style="width:160px;height:160px;margin:10px auto;border-radius:8px;background:#fff;padding:8px;">
+    </div>
+
+    {% if invoice.balance_due() > 0 %}
+    <div class="glass card" style="margin-bottom:16px;">
+      <h3>Record a Payment</h3>
+      <form method="POST" action="{{ url_for('invoices.record_payment', invoice_id=invoice.id) }}">
+        {{ form.hidden_tag() }}
+        {{ field(form.amount) }}
+        {{ field(form.paid_on) }}
+        {{ field(form.method) }}
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Record payment</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <div class="glass card">
+      <h3>Payment History</h3>
+      <table class="table">
+        <tbody>
+          {% for p in invoice.payments %}
+          <tr>
+            <td style="color:var(--muted);">{{ p.paid_on.strftime('%d %b') }}</td>
+            <td style="color:var(--muted);">{{ p.method }}</td>
+            <td style="text-align:right;font-family:var(--font-mono);font-weight:700;">₹{{ "{:,.2f}".format(p.amount) }}</td>
+          </tr>
+          {% else %}
+          <tr><td style="color:var(--muted);text-align:center;padding:16px 0;">No payments yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<form method="POST" action="{{ url_for('invoices.delete', invoice_id=invoice.id) }}" onsubmit="return confirm('Delete this invoice permanently?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-danger btn-sm">Delete invoice</button>
+</form>
+{% endblock %}

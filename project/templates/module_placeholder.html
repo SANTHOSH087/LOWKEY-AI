@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ label }} — Lowkey AI{% endblock %}
+{% block page_title %}{{ label }}{% endblock %}
+
+{% block content %}
+<div class="glass card" style="max-width:520px;">
+  <h3>{{ label }} isn't built yet</h3>
+  <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-top:8px;">
+    This link is live and routed, but the {{ label }} module itself — models, forms, and pages —
+    hasn't been implemented yet. It's next in the build queue.
+  </p>
+  <a href="{{ url_for('dashboard.index') }}" class="btn btn-ghost btn-sm" style="margin-top:16px;">← Back to Dashboard</a>
+</div>
+{% endblock %}

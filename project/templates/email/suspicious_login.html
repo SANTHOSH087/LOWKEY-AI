@@ -1,0 +1,12 @@
+<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#15161f;">
+  <h2 style="color:#6f5cf0;">New sign-in to your account</h2>
+  <p>Hi {{ user.username }},</p>
+  <p>We noticed a sign-in to your Lowkey AI account from a device or location we haven't seen before:</p>
+  <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;">
+    <tr><td style="color:#6b6f8a;padding:4px 0;">When</td><td>{{ when }}</td></tr>
+    <tr><td style="color:#6b6f8a;padding:4px 0;">IP address</td><td>{{ ip }}</td></tr>
+    <tr><td style="color:#6b6f8a;padding:4px 0;">Device</td><td>{{ user_agent }}</td></tr>
+  </table>
+  <p>If this was you, no action is needed.</p>
+  <p style="color:#ef5675;">If this wasn't you, change your password immediately and consider enabling two-factor authentication from Profile → Security.</p>
+</div>

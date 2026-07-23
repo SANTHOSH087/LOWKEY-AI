@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}EMI — Lowkey AI{% endblock %}
+{% block page_title %}EMI Tracker{% endblock %}
+
+{% block content %}
+<div class="grid grid-2" style="margin-bottom:16px;">
+  <div class="glass stat-card"><div class="label">Total Pending</div><div class="value">₹{{ "{:,.0f}".format(total_pending) }}</div></div>
+  <div class="glass stat-card"><div class="label">Active EMIs</div><div class="value">{{ emis|rejectattr('is_completed')|list|length }}</div></div>
+</div>
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+  <a href="{{ url_for('emi.create') }}" class="btn btn-primary btn-sm">+ Add EMI</a>
+</div>
+
+<div class="grid grid-3">
+  {% for e in emis %}
+  <a href="{{ url_for('emi.detail', emi_id=e.id) }}" class="glass card" style="display:block;{{ 'opacity:.6;' if e.is_completed }}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h3 style="margin-bottom:2px;">{{ e.name }}</h3>
+        <span style="color:var(--muted);font-size:12px;">{{ e.bank or 'No provider set' }}</span>
+      </div>
+      {% if e.is_completed %}<span class="pill" style="color:var(--green);">Done</span>
+      {% else %}<span class="pill">Due {{ e.next_due_date().strftime('%d %b') }}</span>{% endif %}
+    </div>
+    <div style="margin-top:14px;font-size:12.5px;color:var(--muted);">
+      ₹{{ "{:,.0f}".format(e.monthly_amount) }}/mo · {{ e.installments_paid }}/{{ e.total_installments }} paid
+    </div>
+    <div style="height:6px;border-radius:99px;background:var(--border-soft);margin-top:8px;overflow:hidden;">
+      <div style="height:100%;border-radius:99px;background:var(--grad-1);width:{{ e.percent_complete() }}%;"></div>
+    </div>
+  </a>
+  {% else %}
+  <div class="glass card" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">
+    No EMIs yet. <a href="{{ url_for('emi.create') }}" style="color:var(--purple);font-weight:700;">Add your first one →</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

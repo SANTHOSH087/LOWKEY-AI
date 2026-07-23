@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Backup codes — Lowkey AI{% endblock %}
+{% block page_title %}Save your backup codes{% endblock %}
+
+{% block content %}
+<div class="glass card" style="max-width:420px;">
+  <p style="font-size:12.5px;color:var(--muted);margin-bottom:16px;">
+    Two-factor authentication is now enabled. Save these one-time backup codes somewhere safe — each one can be used
+    once to sign in if you lose access to your authenticator app. They won't be shown again.
+  </p>
+  <div style="background:var(--surface-hi);border-radius:12px;padding:16px;font-family:monospace;font-size:14px;letter-spacing:0.5px;line-height:2;text-align:center;margin-bottom:20px;">
+    {% for code in codes %}{{ code }}<br>{% endfor %}
+  </div>
+  <a href="{{ url_for('core.security') }}" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">I've saved these — continue</a>
+</div>
+{% endblock %}

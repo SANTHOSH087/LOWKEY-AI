@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Suppliers — Lowkey AI{% endblock %}
+{% block page_title %}Suppliers{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+  <a href="{{ url_for('business.index') }}" class="btn btn-ghost btn-sm">← Back to Business</a>
+  <a href="{{ url_for('business.supplier_create') }}" class="btn btn-primary btn-sm">+ Add Supplier</a>
+</div>
+
+<div class="glass card">
+  <table class="table">
+    <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Products</th><th></th></tr></thead>
+    <tbody>
+      {% for s in suppliers %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td style="color:var(--muted);">{{ s.phone or '—' }}</td>
+        <td style="color:var(--muted);">{{ s.email or '—' }}</td>
+        <td>{{ s.products.count() }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('business.supplier_delete', supplier_id=s.id) }}" onsubmit="return confirm('Delete this supplier?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:24px 0;">No suppliers yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

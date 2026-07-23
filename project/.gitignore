@@ -1,0 +1,12 @@
+*.db
+*.pyc
+.env
+__pycache__/
+instance/
+instance/uploads/
+venv/
+.venv/
+*.egg-info/
+.vscode/
+.idea/
+.DS_Store

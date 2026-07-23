@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Security — Lowkey AI{% endblock %}
+{% block page_title %}Security{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+  <div class="glass card">
+    <h3>Two-factor authentication</h3>
+    {% if current_user.totp_enabled %}
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">
+        <span style="color:var(--green,#26b285);font-weight:700;">● Enabled</span> — your account requires an authenticator code at sign-in.
+      </p>
+      <form method="POST" action="{{ url_for('core.two_factor_disable') }}" onsubmit="return confirm('Disable two-factor authentication?');">
+        {{ disable_form.hidden_tag() }}
+        <div class="field">
+          <label for="{{ disable_form.password.id }}">Confirm password to disable</label>
+          {{ disable_form.password() }}
+        </div>
+        <button type="submit" class="btn btn-danger btn-sm">Disable 2FA</button>
+      </form>
+    {% else %}
+      <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">
+        <span style="color:var(--muted-2);font-weight:700;">● Disabled</span> — add an extra layer of protection with an authenticator app like Google Authenticator or Authy.
+      </p>
+      <a href="{{ url_for('core.two_factor_setup') }}" class="btn btn-primary btn-sm">Enable 2FA</a>
+    {% endif %}
+  </div>
+
+  <div class="glass card">
+    <h3>Export your data</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">Download a password-protected, encrypted copy of your expenses and income.</p>
+    <a href="{{ url_for('core.export_data') }}" class="btn btn-ghost btn-sm">Export data</a>
+  </div>
+
+  <div class="glass card" style="grid-column:1/-1;">
+    <h3>Active sessions</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px;">Everywhere you're currently signed in. If you don't recognize one, revoke it.</p>
+    <table class="table">
+      <thead><tr><th>Device</th><th>IP address</th><th>Last active</th><th></th></tr></thead>
+      <tbody>
+        {% for s in sessions %}
+        <tr>
+          <td>{{ s.device_label() }}{% if s.session_token == current_token %} <span style="color:var(--muted-2);font-size:11px;">(this device)</span>{% endif %}</td>
+          <td>{{ s.ip_address or '—' }}</td>
+          <td>{{ s.last_active_at.strftime('%d %b, %H:%M') }}</td>
+          <td>
+            {% if s.session_token != current_token %}
+            <form method="POST" action="{{ url_for('core.revoke_session_view', session_id=s.id) }}" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-ghost btn-sm">Revoke</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="color:var(--muted);">No active sessions found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="glass card" style="grid-column:1/-1;">
+    <h3>Recent security activity</h3>
+    <table class="table">
+      <thead><tr><th>Event</th><th>IP address</th><th>When</th></tr></thead>
+      <tbody>
+        {% for entry in audit_log %}
+        <tr>
+          <td>{{ entry.label() }}{% if entry.detail %} <span style="color:var(--muted-2);font-size:11px;">({{ entry.detail }})</span>{% endif %}</td>
+          <td>{{ entry.ip_address or '—' }}</td>
+          <td>{{ entry.created_at.strftime('%d %b, %H:%M') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" style="color:var(--muted);">No activity recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

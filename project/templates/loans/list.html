@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Loans — Lowkey AI{% endblock %}
+{% block page_title %}Loans{% endblock %}
+
+{% block content %}
+<div class="grid grid-2" style="margin-bottom:16px;">
+  <div class="glass stat-card"><div class="label">Total Remaining</div><div class="value">₹{{ "{:,.0f}".format(total_remaining) }}</div></div>
+  <div class="glass stat-card"><div class="label">Active Loans</div><div class="value">{{ rows|selectattr('loan.is_closed', 'equalto', false)|list|length }}</div></div>
+</div>
+
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:16px;">
+  <a href="{{ url_for('loans.calculator') }}" class="btn btn-ghost btn-sm">EMI Calculator</a>
+  <a href="{{ url_for('loans.create') }}" class="btn btn-primary btn-sm">+ Add Loan</a>
+</div>
+
+<div class="grid grid-3">
+  {% for row in rows %}
+  {% set l = row.loan %}
+  <a href="{{ url_for('loans.detail', loan_id=l.id) }}" class="glass card" style="display:block;{{ 'opacity:.6;' if l.is_closed }}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <h3 style="margin-bottom:2px;">{{ l.name }}</h3>
+        <span style="color:var(--muted);font-size:12px;">{{ l.bank or 'No lender set' }}</span>
+      </div>
+      {% if l.is_closed %}<span class="pill" style="color:var(--green);">Closed</span>{% endif %}
+    </div>
+    <div style="margin-top:14px;font-size:12.5px;color:var(--muted);">
+      EMI: <b style="color:var(--text);">₹{{ "{:,.0f}".format(row.emi) }}</b>/mo
+    </div>
+    <div style="height:6px;border-radius:99px;background:var(--border-soft);margin-top:8px;overflow:hidden;">
+      <div style="height:100%;border-radius:99px;background:var(--grad-1);width:{{ row.percent }}%;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:6px;">
+      <span>Paid ₹{{ "{:,.0f}".format(row.paid) }}</span>
+      <span>Remaining ₹{{ "{:,.0f}".format(row.remaining) }}</span>
+    </div>
+  </a>
+  {% else %}
+  <div class="glass card" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;">
+    No loans yet. <a href="{{ url_for('loans.create') }}" style="color:var(--purple);font-weight:700;">Add your first one →</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

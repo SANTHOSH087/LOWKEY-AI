@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Search — Lowkey AI{% endblock %}
+{% block page_title %}Search{% endblock %}
+
+{% block content %}
+<form method="GET" action="{{ url_for('core.search') }}" style="margin-bottom:20px;">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search expenses, income, clients, products, invoices, loans, EMIs…"
+         style="width:100%;max-width:520px;padding:12px 16px;border-radius:12px;border:1px solid var(--border-soft);background:var(--surface-hi);color:var(--text);font-size:14px;">
+</form>
+
+{% if q and q|length < 2 %}
+  <p style="color:var(--muted);">Type at least 2 characters to search.</p>
+{% elif q and total == 0 and not report_shortcut %}
+  <p style="color:var(--muted);">No results for "{{ q }}".</p>
+{% elif q %}
+  <p style="color:var(--muted);font-size:12.5px;margin-bottom:16px;">{{ total }} result{{ 's' if total != 1 }} for "{{ q }}"</p>
+
+  {% if report_shortcut %}
+<div class="glass card" style="margin-bottom:14px;">
+  <h3>Reports</h3>
+  <a href="{{ url_for('reports.index', type=report_shortcut) }}" style="display:flex;justify-content:space-between;padding:6px 0;color:var(--text);font-size:13px;">
+    <span>Open the {{ report_shortcut|capitalize }} report →</span>
+  </a>
+</div>
+{% endif %}
+
+{% if results.expenses %}
+  <div class="glass card" style="margin-bottom:14px;">
+    <h3>Expenses</h3>
+    {% for e in results.expenses %}
+      <a href="{{ url_for('expenses.edit', expense_id=e.id) }}" style="display:flex;justify-content:space-between;padding:6px 0;color:var(--text);border-bottom:1px solid var(--border-soft);font-size:13px;">
+        <span>{{ e.description or 'Expense' }} <span style="color:var(--muted-2);">· {{ e.spent_on.strftime('%d %b') }}</span></span>
+        <b>₹{{ "{:,.0f}".format(e.amount) }}</b>
+      </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if results.income %}
+  <div class="glass card" style="margin-bottom:14px;">
+    <h3>Income</h3>
+    {% for i in results.income %}
+      <a href="{{ url_for('income.edit', income_id=i.id) }}" style="display:flex;justify-content:space-between;padding:6px 0;color:var(--text);border-bottom:1px solid var(--border-soft);font-size:13px;">
+        <span>{{ i.source }}{% if i.description %} — {{ i.description }}{% endif %}</span>
+        <b style="color:var(--green);">+₹{{ "{:,.0f}".format(i.amount) }}</b>
+      </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if results.clients %}
+  <div class="glass card" style="margin-bottom:14px;">
+    <h3>Clients</h3>
+    {% for c in results.clients %}
+      <a href="{{ url_for('clients.detail', client_id=c.id) }}" style="display:flex;justify-content:space-between;padding:6px 0;color:var(--text);border-bottom:1px solid var(--border-soft);font-size:13px;">
+        <span>{{ c.name }}</span>
+        {% if c.pending_amount %}<b style="color:var(--red);">₹{{ "{:,.0f}".format(c.pending_amount) }} pending</b>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if results.products %}
+  <div class="glass card" style="margin-bottom:14px;">
+    <h3>Products</h3>
+    {% for p in results.products %}
+      <a href="{{ url_for('business.product_edit', product_id=p.id) }}" style="display:flex;justify-content:space-between;padding:6px 0;color:var(--text);border-bottom:1px solid var(--border-soft);font-size:13px;">
+        <span>{{ p.name }}{% if p.sku %} <span style="color:var(--muted-2);">({{ p.sku }})</span>{% endif %}</span>
+        <b>{{ p.stock_qty }} in stock</b>
+      </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if results.invoices %}
+  <div class="glass card" style="margin-bottom:14px;">
+    <h3>Invoices</h3>
+    {% for inv in results.invoices %}
+      <a href="{{ url_for('invoices.detail', invoice_id=inv.id) }}" style="display:flex;justify-content:space-between;padding:6px 0;color:var(--text);border-bottom:1px solid var(--border-soft);font-size:13px;font-family:var(--font-mono);">
+        <span>{{ inv.invoice_number }}</span>
+        <b>₹{{ "{:,.0f}".format(inv.grand_total()) }}</b>
+      </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if results.loans %}
+  <div class="glass card" style="margin-bottom:14px;">
+    <h3>Loans</h3>
+    {% for l in results.loans %}
+      <a href="{{ url_for('loans.detail', loan_id=l.id) }}" style="display:flex;justify-content:space-between;padding:6px 0;color:var(--text);border-bottom:1px solid var(--border-soft);font-size:13px;">
+        <span>{{ l.name }}</span>
+        <b>₹{{ "{:,.0f}".format(l.remaining_amount()) }} remaining</b>
+      </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if results.emis %}
+  <div class="glass card">
+    <h3>EMIs</h3>
+    {% for e in results.emis %}
+      <a href="{{ url_for('emi.detail', emi_id=e.id) }}" style="display:flex;justify-content:space-between;padding:6px 0;color:var(--text);border-bottom:1px solid var(--border-soft);font-size:13px;">
+        <span>{{ e.name }}</span>
+        <b>₹{{ "{:,.0f}".format(e.monthly_amount) }}/mo</b>
+      </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% else %}
+  <p style="color:var(--muted);">Search across expenses, income, clients, products, invoices, loans, and EMIs.</p>
+{% endif %}
+{% endblock %}
