@@ -21,7 +21,7 @@ clamd==1.0.2             # optional ClamAV malware scanning — only used if CLA
 
 # --- production deployment ---
 gunicorn==23.0.0
-# psycopg2-binary==2.9.10   # Postgres driver — only needed if DATABASE_URL points at Postgres; SQLite needs nothing extra
+psycopg2-binary==2.9.10   # Postgres driver — only needed if DATABASE_URL points at Postgres; SQLite needs nothing extra
 
 # --- optional: only needed if you set OPENAI_API_KEY to enable LLM-enhanced
 # assistant replies (see blueprints/assistant/llm.py — it lazy-imports this
