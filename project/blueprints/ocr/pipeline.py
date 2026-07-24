@@ -15,26 +15,40 @@ from pytesseract import TesseractNotFoundError
 
 # If the Tesseract binary is installed in a standard Windows location, use it
 # directly so the app doesn't depend on PATH being updated in the current shell.
-TESSERACT_CANDIDATES = [
-    os.environ.get("TESSERACT_CMD"),
-    shutil.which("tesseract"),
-    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-    r"C:\Program Files\Tesseract-OCR\bin\tesseract.exe",
-    r"C:\Program Files (x86)\Tesseract-OCR\bin\tesseract.exe",
-]
+def _find_tesseract_binary():
 
+    env = os.environ.get("TESSERACT_CMD")
 
-def _find_tesseract_binary() -> str | None:
-    for candidate in TESSERACT_CANDIDATES:
-        if not candidate:
-            continue
-        candidate = os.path.expandvars(candidate)
-        if os.path.isfile(candidate):
-            return candidate
+    if env and os.path.exists(env):
+        return env
+
+    linux = shutil.which("tesseract")
+
+    if linux:
+        return linux
+
+    windows = [
+
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+
+        r"C:\Program Files\Tesseract-OCR\bin\tesseract.exe",
+
+        r"C:\Program Files (x86)\Tesseract-OCR\bin\tesseract.exe"
+
+    ]
+
+    for path in windows:
+
+        if os.path.exists(path):
+            return path
+
     return None
 
+
 TESSERACT_BINARY = _find_tesseract_binary()
+
 if TESSERACT_BINARY:
     pytesseract.pytesseract.tesseract_cmd = TESSERACT_BINARY
 
@@ -52,39 +66,93 @@ CATEGORY_KEYWORDS = {
 
 
 def preprocess_image(image_path: str) -> Image.Image:
-    """Grayscale + autocontrast + sharpen + upscale — the standard cheap
-    preprocessing pass that measurably improves Tesseract accuracy on
-    photographed (not scanned) receipts, which tend to be low-contrast."""
+    """
+    Prepare receipt image for OCR.
+    """
+
     img = Image.open(image_path)
-    img = ImageOps.exif_transpose(img)  # respect phone camera orientation
-    img = img.convert("L")  # grayscale
-    img = ImageOps.autocontrast(img, cutoff=2)
+
+    img = ImageOps.exif_transpose(img)
+
+    img = img.convert("L")
+
+    img = ImageOps.autocontrast(img)
+
+    img = img.filter(ImageFilter.MedianFilter())
+
     img = img.filter(ImageFilter.SHARPEN)
 
-    # upscale small images — Tesseract accuracy drops noticeably below ~300dpi-equivalent
-    if img.width < 1200:
-        scale = 1200 / img.width
-        img = img.resize((int(img.width * scale), int(img.height * scale)), Image.LANCZOS)
+    if img.width < 1800:
+        scale = 1800 / img.width
+        img = img.resize(
+            (
+                int(img.width * scale),
+                int(img.height * scale)
+            ),
+            Image.LANCZOS
+        )
 
     return img
 
 
 def run_ocr(image: Image.Image) -> tuple[str, float]:
-    """Runs real Tesseract. Returns (raw_text, mean_confidence)."""
+    """
+    Runs OCR and returns
+    (raw_text, confidence)
+    """
+
+    if not TESSERACT_BINARY:
+        raise RuntimeError(
+            "Tesseract executable not found."
+        )
+
     try:
-        raw_text = pytesseract.image_to_string(image)
-        data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
+
+        raw_text = pytesseract.image_to_string(
+            image,
+            lang="eng",
+            config="--oem 3 --psm 6"
+        )
+
+        if not raw_text.strip():
+            raise RuntimeError("No text detected.")
+
+        data = pytesseract.image_to_data(
+            image,
+            output_type=pytesseract.Output.DICT,
+            config="--oem 3 --psm 6"
+        )
+
     except TesseractNotFoundError as exc:
         raise RuntimeError(
-            "Tesseract OCR is unavailable. Install the Tesseract binary and ensure it is on PATH."
+            "Tesseract executable not found."
         ) from exc
+
     except Exception as exc:
-        raise RuntimeError("OCR engine failure") from exc
+        raise RuntimeError(
+            f"OCR engine failure: {exc}"
+        ) from exc
 
-    confidences = [int(c) for c in data["conf"] if c not in ("-1", -1)]
-    mean_conf = sum(confidences) / len(confidences) if confidences else 0.0
+    confidences = []
 
-    return raw_text, round(mean_conf, 1)
+    for c in data["conf"]:
+
+        try:
+
+            value = float(c)
+
+            if value >= 0:
+                confidences.append(value)
+
+        except Exception:
+            pass
+
+    confidence = round(
+        sum(confidences) / len(confidences),
+        1
+    ) if confidences else 0
+
+    return raw_text, confidence
 
 
 _AMOUNT_RE = re.compile(r"(?:rs\.?|inr|₹)?\s*([\d]{1,3}(?:,\d{2,3})*(?:\.\d{1,2})?)", re.IGNORECASE)
@@ -99,7 +167,7 @@ _DATE_PATTERNS = [
 def _extract_merchant(lines: list[str]) -> str | None:
     """Heuristic: the merchant name is almost always one of the first
     non-empty lines, before any address/date/amount noise starts."""
-    for line in lines[:5]:
+    for line in lines[:8]:
         cleaned = line.strip()
         if len(cleaned) < 3:
             continue
